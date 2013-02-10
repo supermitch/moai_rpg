@@ -49,7 +49,7 @@ function main()
     screenWidth = MOAIEnvironment.horizontalResolution or 640
     screenHeight = MOAIEnvironment.verticalResolution or 480
 
-    scaleWidth = 10
+    scaleWidth = 20
     scaleHeight = math.floor(scaleWidth * screenHeight / screenWidth)
     print("W: "..scaleWidth.." H:"..scaleHeight)
 
@@ -74,14 +74,22 @@ function main()
     prop = MOAIProp2D.new()
     prop:setDeck(sprite)
     prop:setLoc(0, 0)
-
+    
     layer:insertProp(prop)
+
+    camera = MOAICamera.new()
+    camera:setOrtho( true )
+    --camera:setNearPlane( 1 )
+    --camera:setFarPlane( -1 )
+    cam_z = camera:getFocalLength(screenWidth)
+    camera:setLoc(0, 0, cam_z)
+    map_layer:setCamera(camera)
+
     --[[
     chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
 
     font = MOAIFont.new()
     font:loadFromTTF('fonts/Menlo.ttc', chars, 120, 72)
-
     
     text = MOAITextBox.new()
     text:setString('Hello world')
@@ -93,10 +101,23 @@ function main()
 
     layer:insertProp(text)
     --]]
+
     MOAIGfxDevice.setClearColor(1, 0.41, 0.70, 1)
 
     function handleClickOrTouch(x, y)
-        prop:setLoc(layer:wndToWorld(x, y))
+        X, Y = layer:wndToWorld(x,y)
+        tx = math.abs(X)/2.5
+        ty = math.abs(Y)/2.5
+
+        function move_camera ()
+            action = camera:moveLoc(X, 0, 0, tx, 3)
+            MOAICoroutine.blockOnAction ( action )
+            action2 = camera:moveLoc(0, Y, 0, ty, 3)
+            MOAICoroutine.blockOnAction ( action2 )
+        end
+        local thread = MOAICoroutine.new ()
+        thread:run ( move_camera )
+
     end
 
     if MOAIInputMgr.device.pointer then
