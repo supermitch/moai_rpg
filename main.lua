@@ -1,3 +1,15 @@
+function round(num, idp)
+    -- Round to idp number of decimal points
+    local mult = 10^(idp or 0)
+    return math.floor(num * mult + 0.5) / mult
+end
+
+function distance(X1, Y1, X2, Y2)
+    -- Calculate straight line distance between two points
+    return (math.abs(X1 - X2)^2 + math.abs(Y1 - Y2)^2)^0.5
+end
+
+
 function load_map()
 
     map_layer = MOAILayer2D.new()
@@ -11,16 +23,18 @@ function load_map()
     sand_sprite:setTexture("images/sand_1.png")
     sand_sprite:setRect(0, 0, 1, 1)
 
-    map = {{2,2,2,2,2,1,1,1,1,1}
-          ,{2,2,2,2,1,1,1,1,1,1}
-          ,{2,2,2,2,1,1,1,1,1,1}
-          ,{2,2,2,2,2,2,1,1,1,1}
-          ,{1,2,2,2,2,2,1,1,1,1}
-          ,{1,1,2,2,2,2,2,1,1,1}
-          ,{1,1,1,2,2,1,1,1,1,1}
-          ,{1,1,1,1,1,1,1,1,1,1}
-          ,{1,1,1,1,1,1,1,1,1,1}
-          ,{1,1,1,1,1,1,1,1,1,1}}
+    map = {{2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1}
+          ,{2,2,2,2,1,1,1,1,1,1,1,1,1,1,2,2,2}
+          ,{2,2,2,2,1,1,1,1,1,1,1,1,1,2,2,2,2}
+          ,{2,2,2,2,2,2,1,1,1,1,1,1,2,2,2,2,2}
+          ,{1,2,2,2,2,2,1,1,1,1,1,1,2,2,2,2,2}
+          ,{1,1,2,2,2,2,2,1,1,1,1,2,2,2,2,2,2}
+          ,{1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,2,2}
+          ,{1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2}
+          ,{1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2}
+          ,{1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2}
+          ,{1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2}
+          ,{1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2}}
 
     for i, row in pairs(map) do
         for j, value in pairs(row) do
@@ -33,7 +47,7 @@ function load_map()
                 error("Invalid map value at ("..i..","..j..") = "..value)
                 map_prop:setDec(grass_sprite)
             end
-            map_prop:setLoc((i-1-scaleWidth/2), (j-1-scaleHeight/2))
+            map_prop:setLoc((j-1-scaleWidth/2), (i-1-scaleHeight/2))
             map_layer:insertProp(map_prop)
         end
     end
@@ -41,17 +55,16 @@ function load_map()
     return map_layer
 end -- function load_map()
 
-function main()
-
+function setup_screen ()
 
     print("Starting up on: [" .. MOAIEnvironment.osBrand .."]")
 
     screenWidth = MOAIEnvironment.horizontalResolution or 640
     screenHeight = MOAIEnvironment.verticalResolution or 480
 
-    scaleWidth = 20
+    scaleWidth = 16
     scaleHeight = math.floor(scaleWidth * screenHeight / screenWidth)
-    print("W: "..scaleWidth.." H:"..scaleHeight)
+    print("W:"..scaleWidth.." H:"..scaleHeight)
 
     MOAISim.openWindow("Window", screenWidth, screenHeight)
 
@@ -59,99 +72,87 @@ function main()
     viewport:setSize(screenWidth, screenHeight)
     viewport:setScale(scaleWidth, scaleHeight)
 
-    layer = MOAILayer2D.new()
-    layer:setViewport(viewport)
+    char_layer = MOAILayer2D.new()  -- Character layer
+    char_layer:setViewport(viewport)
 
     map_layer = load_map()
 
     MOAIRenderMgr.pushRenderPass(map_layer)
-    MOAIRenderMgr.pushRenderPass(layer)
+    MOAIRenderMgr.pushRenderPass(char_layer)
+end
 
+function setup_world ()
+    -- Main character render --
     sprite = MOAIGfxQuad2D.new()
     sprite:setTexture("images/dude_1.png")
     sprite:setRect(-0.5, -0.5, 0.5, 0.5)
 
-    prop = MOAIProp2D.new()
-    prop:setDeck(sprite)
-    prop:setLoc(0, 0)
+    dude = MOAIProp2D.new()
+    dude:setDeck(sprite)
+    dude:setLoc(0, 0)
+    dude.speed = 3
     
-    layer:insertProp(prop)
+    char_layer:insertProp(dude)
 
-    camera = MOAICamera.new()
-    camera:setOrtho( true )
-    --camera:setNearPlane( 1 )
-    --camera:setFarPlane( -1 )
-    cam_z = camera:getFocalLength(screenWidth)
-    camera:setLoc(0, 0, cam_z)
-    map_layer:setCamera(camera)
+    -- Slime character render --
+    slime_sprite = MOAIGfxQuad2D.new()
+    slime_sprite:setTexture("images/slime_1.png")
+    slime_sprite:setRect(-0.5, -0.5, 0.5, 0.5)
 
-    --[[
-    chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ'
-
-    font = MOAIFont.new()
-    font:loadFromTTF('fonts/Menlo.ttc', chars, 120, 72)
+    slime = MOAIProp2D.new()
+    slime:setDeck(slime_sprite)
+    slime:setLoc(5, 5)
+    slime.speed = 2
+    char_layer:insertProp(slime)
     
-    text = MOAITextBox.new()
-    text:setString('Hello world')
-    text:setFont(font)
-    text:setTextSize(120, 72)
-    text:setYFlip(true)
-    text:setRect(-300, -200, 300, 200)
-    text:setAlignment(MOAITextBox.CENTER_JUSTIFY, MOAITextBox.CENTER_JUSTIFY)
-
-    layer:insertProp(text)
-    --]]
+    slime2 = MOAIProp2D.new()
+    slime2:setDeck(slime_sprite)
+    slime2:setLoc(-3, -2)
+    slime2.speed = 1.5
+    char_layer:insertProp(slime2)
 
     MOAIGfxDevice.setClearColor(1, 0.41, 0.70, 1)
 
-    function handleClickOrTouch(x, y)
-        X, Y = layer:wndToWorld(x,y)
-        tx = math.abs(X)/2.5
-        ty = math.abs(Y)/2.5
+end -- function setup_world()
 
-        function move_camera ()
-            action = camera:moveLoc(X, 0, 0, tx, 3)
-            MOAICoroutine.blockOnAction ( action )
-            action2 = camera:moveLoc(0, Y, 0, ty, 3)
-            MOAICoroutine.blockOnAction ( action2 )
+function move_dude(x, y)
+    X_cur, Y_cur = dude:getLoc()
+    X, Y = char_layer:wndToWorld(x, y)
+    dist = distance(X, Y, X_cur, Y_cur)
+    time = dist / slime.speed
+    dude:seekLoc(X, Y, time, MOAIEaseType.LINEAR)
+end
+
+function move_prop(prop_obj)
+    X_cur, Y_cur = prop_obj:getLoc()
+    X = math.random(-1,1)
+    Y = math.random(-1,1)
+    dist = distance(X, Y, X_cur, Y_cur)
+    time = dist / prop_obj.speed
+    prop_obj:moveLoc(X, Y, time, MOAIEaseType.LINEAR)
+end
+
+function main ()
+    gameOver = false
+    setup_screen ()
+    setup_world ()
+
+    mainThread = MOAICoroutine.new ()
+    mainThread:run (function () -- Game loop
+        local frames = 0
+        while not gameOver do
+            coroutine.yield ()
+            frames = frames + 1
+            if frames == 90 then
+                frames = 0
+                move_prop(slime)
+                move_prop(slime2)
+            end
+            if MOAIInputMgr.device.mouseLeft:down () then
+                move_dude(MOAIInputMgr.device.pointer:getLoc())
+            end
         end
-        local thread = MOAICoroutine.new ()
-        thread:run ( move_camera )
+    end)
+end
 
-    end
-
-    if MOAIInputMgr.device.pointer then
-        MOAIInputMgr.device.mouseLeft:setCallback(
-            function (isMouseDown)
-                if (isMouseDown) then
-                    handleClickOrTouch(MOAIInputMgr.device.pointer:getLoc())
-                end
-                -- Do nothing on mouseUp
-            end
-        )
-        MOAIInputMgr.device.mouseRight:setCallback(
-            function (isMouseDown)
-                if (isMouseDown) then
-                    MOAIGfxDevice.setClearColor(math.random(0, 1),
-                                                math.random(0, 1),
-                                                math.random(0, 1))
-                end
-            end
-        )
-    else    -- If it isnt' a mouse, it's a touch screen
-        MOAIInputMgr.device.touch:setCallback(
-            function (eventType, idx, x, y, tapCount)
-                if (tapCount > 1) then
-                    MOAIGfxDevice.setClearColor(math.random(0, 1),
-                                                math.random(0, 1),
-                                                math.random(0, 1))
-                elseif eventType == MOAITouchSensor.TOUCH_DOWN then
-                    handleClickOrTouch(x, y)
-                end
-            end
-        )
-    end
-
-end -- function main()
-
-main()  -- run program
+main() -- Run program
