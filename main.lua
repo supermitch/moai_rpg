@@ -1,14 +1,4 @@
-function round(num, idp)
-    -- Round to idp number of decimal points
-    local mult = 10^(idp or 0)
-    return math.floor(num * mult + 0.5) / mult
-end
-
-function distance(X1, Y1, X2, Y2)
-    -- Calculate straight line distance between two points
-    return (math.abs(X1 - X2)^2 + math.abs(Y1 - Y2)^2)^0.5
-end
-
+mh = require 'math_helper'   -- import helper math module
 
 function load_map()
 
@@ -28,6 +18,9 @@ function load_map()
           ,{2,2,2,2,1,1,1,1,1,1,1,1,1,2,2,2,2}
           ,{2,2,2,2,2,2,1,1,1,1,1,1,2,2,2,2,2}
           ,{1,2,2,2,2,2,1,1,1,1,1,1,2,2,2,2,2}
+          ,{1,2,2,2,2,2,1,1,1,1,1,1,2,2,2,2,2}
+          ,{1,1,2,2,2,2,2,1,1,1,1,2,2,2,2,2,2}
+          ,{1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,2,2}
           ,{1,1,2,2,2,2,2,1,1,1,1,2,2,2,2,2,2}
           ,{1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,2,2}
           ,{1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2}
@@ -91,7 +84,30 @@ function setup_world ()
     dude:setDeck(sprite)
     dude:setLoc(0, 0)
     dude.speed = 3
-    
+    dude.thread = MOAICoroutine.new()
+   
+    function dude:move(x, y)
+        if self.thread == nil then
+            print("No thread found")
+        else
+            print(MOAICoroutine.currentThread())
+            print("stopping thread")
+            self.thread:stop()
+            print(MOAICoroutine.currentThread())
+        end
+        self.thread:run (
+            function()
+                X_cur, Y_cur = self:getLoc()
+                X, Y = char_layer:wndToWorld(x, y)
+                dist = mh.distance(X, Y, X_cur, Y_cur)
+                time = dist / slime.speed
+                MOAICoroutine.blockOnAction (
+                    self:seekLoc(X, Y, time, MOAIEaseType.LINEAR)
+                )
+            end
+        )
+    end
+
     char_layer:insertProp(dude)
 
     -- Slime character render --
@@ -115,19 +131,12 @@ function setup_world ()
 
 end -- function setup_world()
 
-function move_dude(x, y)
-    X_cur, Y_cur = dude:getLoc()
-    X, Y = char_layer:wndToWorld(x, y)
-    dist = distance(X, Y, X_cur, Y_cur)
-    time = dist / slime.speed
-    dude:seekLoc(X, Y, time, MOAIEaseType.LINEAR)
-end
 
 function move_prop(prop_obj)
     X_cur, Y_cur = prop_obj:getLoc()
     X = math.random(-1,1)
     Y = math.random(-1,1)
-    dist = distance(X, Y, X_cur, Y_cur)
+    dist = mh.distance(X, Y, X_cur, Y_cur)
     time = dist / prop_obj.speed
     prop_obj:moveLoc(X, Y, time, MOAIEaseType.LINEAR)
 end
@@ -149,7 +158,7 @@ function main ()
                 move_prop(slime2)
             end
             if MOAIInputMgr.device.mouseLeft:down () then
-                move_dude(MOAIInputMgr.device.pointer:getLoc())
+                dude:move(MOAIInputMgr.device.pointer:getLoc())
             end
         end
     end)
