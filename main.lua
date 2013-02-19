@@ -1,4 +1,4 @@
-mh = require 'math_helper'   -- import helper math module
+mh = require 'lib/math_helper'   -- import helper math module
 
 
 function setup_screen ()
