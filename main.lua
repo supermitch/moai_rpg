@@ -158,10 +158,10 @@ function make_dude(X, Y, speed)
     dude:setLoc(X, Y)
 
     dude.speed = speed
-    prop.health = 20
-    prop.strength = 5
-    prop.defence = 6
-    prop.agility = 2
+    dude.health = 20
+    dude.strength = 5
+    dude.defence = 6
+    dude.agility = 2
 
     dude.width = 1
     dude.height = 1
