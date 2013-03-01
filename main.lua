@@ -1,5 +1,5 @@
 mh = require 'lib/math_helper'   -- import helper math module
-
+sh = require 'lib/string_helper' -- import helper string module
 
 function setup_screen ()
     -- Set up viewports, layers, maps, etc
@@ -120,26 +120,61 @@ function collide_rect(obj_a, obj_b)
 
 end -- collide_rect(obj1, obj2)
 
-function attack(attacker, defender)
-    --[[ Calculate the damage delt by an attack ]]-- 
+function calc_hit(attack, defend)
+    --[[ Given agilities of attacker and defender, calculate whether
+    the attack was a hit or a miss. ]]--
+
     -- Calculate probability of contact based on agility
-    -- Base agility is 10. (100 % chance of hitting inanimate object)
-    -- Max agility is 100. Minimum is 0.
-    local attack_diff = (attacker.agility - 10) / 100
-    print ('attack diff', attack_diff)
-    local defend_diff = (defender.agility - 10) / 100
-    print ('defend diff', defend_diff)
+    -- Agility from 0 to 100 pts +/- 20 % random adjustment
+    local atk_agil = attack + attack * (math.random()*2-1) * 0.2
+    local def_agil = defend + defend * (math.random()*2-1) * 0.2
+    
+    local strike_percent = 75 + (atk_agil - 10) - (def_agil - 10)
 
-    local strike_percent = attack_diff * defend_diff
-    print ('strike percent', strike_percent)
-
-    local damage = 0
-    if strike_percent > 0.6 then
-        damage = attacker.strength - defender.defence * math.random()
+    local strike_roll = math.random()*100
+    if strike_roll <= strike_percent then
+        return true
+    else
+        return false
     end
-    print ('damage:', damage)
-    return damage
+end -- calc_hit(attack, defend)
 
+
+function calc_damage(strength, defence)
+    -- 20 % variability on strength & defence
+    local str = strength + strength * (math.random()*2-1) * 0.2
+    local def = defence + defence * (math.random()*2-1) * 0.2
+
+    -- Scale damage by % difference with defence
+    local damage = str + str * (str - def) / def
+    -- Up to 25 % bonus on damage
+    damage = mh.round(damage + damage * math.random() * 0.25, 2)
+    if damage > 0 then
+        return damage
+    else
+        return 0
+    end
+end -- calc_damage(strength, defence)
+
+
+function attack(attacker, defender)
+
+    if calc_hit(attacker.agility, defender.agility) then
+        io.write("Hit! ")
+        local damage = calc_damage(attacker.strength, defender.defence)
+        if damage then
+            play_sound('clang')
+            print(sh.firstToUpper(defender.name).." lost "..damage.." health!")
+            defender.health = defender.health - damage
+        else
+            play_sound('clunk')
+            print(sh.firstToUpper(defender.name).."blocked!")
+        end
+    else
+        play_sound('swish')
+        print(sh.firstToUpper(attacker.name).." missed!")
+    end
+    return defender.health
 end -- attack(attacker, defender)
 
 
@@ -158,10 +193,14 @@ function make_dude(X, Y, speed)
     dude:setLoc(X, Y)
 
     dude.speed = speed
+    dude.dir_x = 0
+    dude.dir_y = 0
+
+    dude.name = 'Hero'
     dude.health = 20
     dude.strength = 5
     dude.defence = 6
-    dude.agility = 2
+    dude.agility = 3
 
     dude.width = 1
     dude.height = 1
@@ -171,7 +210,12 @@ function make_dude(X, Y, speed)
     function dude:move(x, y)
         local X_cur, Y_cur = self:getLoc()
         local X, Y = char_layer:wndToWorld( x, y )
-        local time = mh.distance(X, Y, X_cur, Y_cur) / self.speed
+        local distance = mh.distance(X, Y, X_cur, Y_cur)
+        local time = distance / self.speed
+        self.dir_x = (X - X_cur) / distance -- X unit vector component
+        print("dir_x:", mh.round(self.dir_x, 1))
+        self.dir_y = (Y - Y_cur) / distance -- Y unit vector component
+        print("dir_y:", mh.round(self.dir_y, 1))
         function thread_func()
             self.move_action = self:seekLoc( X, Y, time, MOAIEaseType.LINEAR )
             MOAICoroutine.blockOnAction ( self.move_action )
@@ -180,10 +224,23 @@ function make_dude(X, Y, speed)
 
         self.thread = MOAICoroutine.new()
         self.thread:run( thread_func )
+    end -- dude:move(x, y)
+
+    function dude:rebound()
+        local X_cur, Y_cur = self:getLoc()
+        local X_new = X_cur - self.dir_x * 0.5  -- rebound by 1/2 world units
+        local Y_new = Y_cur - self.dir_y * 0.5
+        self:setLoc(X_new, Y_new)
+    end -- dude:rebound()
+
+    function dude:isMoving()
+        if self.move_action ~= nil and self.move_action:isBusy() then
+            return true
+        end
     end
 
     function dude:stop()
-        if self.move_action ~= nil and self.move_action:isBusy() then
+        if self.isMoving() then
             self.move_action:stop()
         end
     end
@@ -194,7 +251,7 @@ function make_dude(X, Y, speed)
 end -- function make_dude ()
 
 
-function make_monster(X, Y, speed, monster_type)
+function make_monster(X, Y, speed, name)
 
     -- Slime character render --
     local texture = MOAITexture.new()
@@ -207,7 +264,7 @@ function make_monster(X, Y, speed, monster_type)
     prop:setDeck(sprite)
     prop:setLoc(X, Y)
     prop.speed = speed
-    prop.monster_type = monster_type
+    prop.name = name
     prop.health = 10
     prop.strength = 2
     prop.defence = 5
@@ -258,12 +315,15 @@ function setup_world ()
     }
 end -- setup_world()
 
-function play_sound(sound_name)
+function play_sound(name)
     --[[ Play a given sound file ]]--
     local sound = MOAIUntzSound.new()
     -- TODO Load sounds when we set up world, not when we need to play them
-    if sound_name == 'item pickup' then sound:load('sounds/buckle.wav')
-    elseif sound_name == 'game over' then sound:load('sounds/neck_snap.wav')
+    if name == 'item pickup' then sound:load('sounds/pickup_metal.wav')
+    elseif name == 'game over' then sound:load('sounds/kill.wav')
+    elseif name == 'clang' then sound:load('sounds/clang.aiff')
+    elseif name == 'swish' then sound:load('sounds/swish.wav')
+    elseif name == 'clunk' then sound:load('sounds/clunk.wav')
     end
     sound:setLooping(false)
     sound:setPosition(0)
@@ -295,19 +355,33 @@ function game_loop ()
             end
         end
         if MOAIInputMgr.device.mouseLeft:down () then
-            if dude.move_action ~= nil and dude.move_action:isBusy() then
+            if dude:isMoving() then
                 dude.move_action:stop()
             end
             dude:move(MOAIInputMgr.device.pointer:getLoc())
         end
         for i, monster in ipairs (monsters) do
             if collide_rect(monster, dude) then
-                print('Slime killed you!')
-                print('Game over.')
-                char_layer:removeProp(dude)
-                play_sound('game over')
-                game_over = true
-                break
+                if dude:isMoving() then
+                    dude.move_action:stop()
+                    attack(dude, monster)
+                else
+                    attack(monster, dude)
+                end
+                dude:rebound()
+                if dude.health <= 0 then
+                    print("You died! Game over.")
+                    char_layer:removeProp(dude)
+                    play_sound('game over')
+                    game_over = true
+                    break
+                elseif monster.health <= 0 then
+                    print('You killed the '..monster.name..'!')
+                    char_layer:removeProp(monster)
+                    play_sound('game over')
+                    table.remove(monsters, i)
+                    break
+                end
             end
         end 
         for i, item in ipairs(items) do
