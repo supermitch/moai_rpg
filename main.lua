@@ -1,5 +1,5 @@
-mh = require 'lib/math_helper'   -- import helper math module
-sh = require 'lib/string_helper' -- import helper string module
+mh = require 'lib/helpers/math_helper'   -- import helper math module
+sh = require 'lib/helpers/string_helper' -- import helper string module
 
 function setup_screen ()
     -- Set up viewports, layers, maps, etc
