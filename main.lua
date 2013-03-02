@@ -1,5 +1,6 @@
-mh = require 'lib/helpers/math_helper'   -- import helper math module
-sh = require 'lib/helpers/string_helper' -- import helper string module
+mh = require 'lib/helpers/math_helper'      -- helper math module
+sh = require 'lib/helpers/string_helper'    -- helper string module
+sm = require 'lib/sound_mgr'                -- sound effects manager
 
 function setup_screen ()
     -- Set up viewports, layers, maps, etc
@@ -36,11 +37,6 @@ function setup_screen ()
 
 end -- setup_screen()
 
-function setup_sound()
-    --[[ Initialize Untz ]]--
-    MOAIUntzSystem.initialize()
-    MOAIUntzSystem.setVolume(1)
-end -- setup_sound()
 
 function load_map()
     --[[ Generate a map layer containing all terrain props ]]--
@@ -48,26 +44,34 @@ function load_map()
     map_layer = MOAILayer2D.new()
     map_layer:setViewport(viewport)
 
-    local grass_sprite = MOAIGfxQuad2D.new()
-    grass_sprite:setTexture("images/grass_1.png")
-    grass_sprite:setRect(0, 0, 1, 1)
+    local grass = MOAIGfxQuad2D.new()
+    grass:setTexture("images/maps/grass_1.png")
+    grass:setRect(-0.5, -0.5, 0.5, 0.5)
 
-    local sand_sprite = MOAIGfxQuad2D.new()
-    sand_sprite:setTexture("images/sand_1.png")
-    sand_sprite:setRect(0, 0, 1, 1)
+    local sand = MOAIGfxQuad2D.new()
+    sand:setTexture("images/maps/sand_1.png")
+    sand:setRect(-0.5, -0.5, 0.5, 0.5)
+
+    local grass_rock = MOAIGfxQuad2D.new()
+    grass_rock:setTexture("images/maps/rock_1.png")
+    grass_rock:setRect(-0.5, -0.5, 0.5, 0.5)
+
+    local sand_rock = MOAIGfxQuad2D.new()
+    sand_rock:setTexture("images/maps/rock_2.png")
+    sand_rock:setRect(-0.5, -0.5, 0.5, 0.5)
 
     map = {{2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1}
           ,{2,2,2,2,1,1,1,1,1,1,1,1,1,1,2,2,2}
           ,{2,2,2,2,1,1,1,1,1,1,1,1,1,2,2,2,2}
           ,{2,2,2,2,2,2,1,1,1,1,1,1,2,2,2,2,2}
-          ,{1,2,2,2,2,2,1,1,1,1,1,1,2,2,2,2,2}
-          ,{1,2,2,2,2,2,1,1,1,1,1,1,2,2,2,2,2}
-          ,{1,1,2,2,2,2,2,1,1,1,1,2,2,2,2,2,2}
+          ,{1,2,2,2,2,2,1,1,3,1,1,1,2,2,2,2,2}
+          ,{1,2,2,2,2,2,1,1,1,1,1,1,2,2,4,2,2}
+          ,{1,1,2,2,2,2,2,1,1,1,1,2,2,4,4,2,2}
+          ,{1,1,1,2,2,1,1,1,1,1,1,1,1,4,4,2,2}
+          ,{1,1,2,2,2,2,2,1,1,1,1,2,2,4,2,2,2}
           ,{1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,2,2}
-          ,{1,1,2,2,2,2,2,1,1,1,1,2,2,2,2,2,2}
-          ,{1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,2,2}
-          ,{1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2}
-          ,{1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2}
+          ,{1,1,1,1,1,1,3,1,3,1,1,1,2,2,2,2,2}
+          ,{1,1,1,1,1,3,3,1,1,1,1,1,2,2,2,2,2}
           ,{1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2}
           ,{1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2}
           ,{1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2}}
@@ -76,17 +80,35 @@ function load_map()
         for j, value in pairs(row) do
             local map_prop = MOAIProp2D.new()
             if value == 1 then
-                map_prop:setDeck(grass_sprite)
+                map_prop:setDeck(grass)
+                map_prop.name = 'grass'
             elseif value == 2 then
-                map_prop:setDeck(sand_sprite)
+                map_prop:setDeck(sand)
+                map_prop.name = 'sand'
+            elseif value == 3 then
+                map_prop:setDeck(grass_rock)
+                map_prop.name = 'grass_rock'
+                map_prop.walkable = false
+            elseif value == 4 then
+                map_prop:setDeck(sand_rock)
+                map_prop.name = 'sand_rock'
+                map_prop.walkable = false
             else
                 error("Invalid map value at ("..i..","..j..") = "..value)
-                map_prop:setDec(grass_sprite)
+                map_prop:setDec(grass)
+            end
+            if map_prop.walkable == nil then
+                map_prop.walkable = true
             end
             map_prop:setLoc((j-1-scaleWidth/2), (i-1-scaleHeight/2))
             map_layer:insertProp(map_prop)
         end
     end
+    
+    function map_layer:get_prop(X, Y)
+        local partition = self:getPartition()
+        return partition:propForPoint(X, Y, 0)
+    end 
 
     return map_layer
 end -- load_map()
@@ -117,8 +139,8 @@ function collide_rect(obj_a, obj_b)
         end 
     end
     return false
-
 end -- collide_rect(obj1, obj2)
+
 
 function calc_hit(attack, defend)
     --[[ Given agilities of attacker and defender, calculate whether
@@ -159,31 +181,55 @@ end -- calc_damage(strength, defence)
 
 function attack(attacker, defender)
 
-    if calc_hit(attacker.agility, defender.agility) then
-        io.write("Hit! ")
-        local damage = calc_damage(attacker.strength, defender.defence)
+    if calc_hit(attacker.attribs.agility, defender.attribs.agility) then
+        io.write(sh.firstToUpper(attacker.name).." hit! ")
+        local damage = calc_damage(attacker.attribs.strength, defender.attribs.defence)
         if damage then
-            play_sound('clang')
+            sm.play_sound('clang')
             print(sh.firstToUpper(defender.name).." lost "..damage.." health!")
-            defender.health = defender.health - damage
+            defender.attribs.health = defender.attribs.health - damage
         else
-            play_sound('clunk')
+            sm.play_sound('clunk')
             print(sh.firstToUpper(defender.name).."blocked!")
         end
     else
-        play_sound('swish')
+        sm.play_sound('swish')
         print(sh.firstToUpper(attacker.name).." missed!")
     end
-    return defender.health
+    return defender.attribs['health']
 end -- attack(attacker, defender)
 
 
-function make_dude(X, Y, speed)
+function seek_location(self, x, y)
+    --[[ A prop method for seeking an (x,y) location. ]]--
+    local X_cur, Y_cur = self:getLoc()
+    local X, Y = char_layer:wndToWorld( x, y )
+    local distance = mh.distance(X, Y, X_cur, Y_cur)
+    if distance <= 0 then return nil end
+    local time = distance / self.attribs.speed
+    self.dir_x = (X - X_cur) / distance -- X unit vector component
+    self.dir_y = (Y - Y_cur) / distance -- Y unit vector component
+    function thread_func()
+        self.move_action = self:seekLoc( X, Y, time, MOAIEaseType.LINEAR )
+        MOAICoroutine.blockOnAction ( self.move_action )
+    end
+    self.thread = MOAICoroutine.new()
+    self.thread:run( thread_func )
+end -- seek_location(x, y)
+
+function rebound(self)
+    local X_cur, Y_cur = self:getLoc()
+    local X_new = X_cur - self.dir_x * 0.5  -- rebound by 1/2 world units
+    local Y_new = Y_cur - self.dir_y * 0.5
+    self:setLoc(X_new, Y_new)
+end -- rebound()
+
+
+function make_dude(X, Y, name)
     -- Main character render --
     local texture = MOAITexture.new()
-    texture:load( 'images/dude_1.png' )
+    texture:load( 'images/chars/dude_1.png' )
     local w, h = texture:getSize()
-
     local sprite = MOAIGfxQuad2D.new()
     sprite:setTexture( texture )
     sprite:setRect(-w/32, -h/32, w/32, h/32) --i.e. (w/2) / (16 px/world unit)
@@ -191,47 +237,24 @@ function make_dude(X, Y, speed)
     dude = MOAIProp2D.new()
     dude:setDeck(sprite)
     dude:setLoc(X, Y)
-
-    dude.speed = speed
-    dude.dir_x = 0
-    dude.dir_y = 0
-
-    dude.name = 'Hero'
-    dude.health = 20
-    dude.strength = 5
-    dude.defence = 6
-    dude.agility = 3
-
     dude.width = 1
     dude.height = 1
+    dude.dir_x = 0
+    dude.dir_y = 0
+    dude.name = name
 
-    char_layer:insertProp(dude)
+    local attrib_table = {}
+    attrib_table = { speed = 3
+        , move_distance = 0 
+        , health = 20
+        , strength = 5
+        , defence = 6
+        , agility = 3 }
+    dude.attribs = attrib_table
 
-    function dude:move(x, y)
-        local X_cur, Y_cur = self:getLoc()
-        local X, Y = char_layer:wndToWorld( x, y )
-        local distance = mh.distance(X, Y, X_cur, Y_cur)
-        local time = distance / self.speed
-        self.dir_x = (X - X_cur) / distance -- X unit vector component
-        print("dir_x:", mh.round(self.dir_x, 1))
-        self.dir_y = (Y - Y_cur) / distance -- Y unit vector component
-        print("dir_y:", mh.round(self.dir_y, 1))
-        function thread_func()
-            self.move_action = self:seekLoc( X, Y, time, MOAIEaseType.LINEAR )
-            MOAICoroutine.blockOnAction ( self.move_action )
-            MOAICoroutine.blockOnAction ( self:moveRot(360, 0.3) )
-        end
-
-        self.thread = MOAICoroutine.new()
-        self.thread:run( thread_func )
-    end -- dude:move(x, y)
-
-    function dude:rebound()
-        local X_cur, Y_cur = self:getLoc()
-        local X_new = X_cur - self.dir_x * 0.5  -- rebound by 1/2 world units
-        local Y_new = Y_cur - self.dir_y * 0.5
-        self:setLoc(X_new, Y_new)
-    end -- dude:rebound()
+    -- Prop Methods --
+    dude.move = seek_location
+    dude.rebound = rebound
 
     function dude:isMoving()
         if self.move_action ~= nil and self.move_action:isBusy() then
@@ -245,17 +268,17 @@ function make_dude(X, Y, speed)
         end
     end
 
+    char_layer:insertProp(dude)
     return dude
-        
 
 end -- function make_dude ()
 
 
-function make_monster(X, Y, speed, name)
+function make_monster(X, Y, name)
 
     -- Slime character render --
     local texture = MOAITexture.new()
-    texture:load( 'images/slime_1.png' )
+    texture:load( 'images/monsters/slime_1.png' )
     local w, h = texture:getSize()
     local sprite = MOAIGfxQuad2D.new()
     sprite:setTexture( texture )
@@ -263,14 +286,32 @@ function make_monster(X, Y, speed, name)
     local prop = MOAIProp2D.new()
     prop:setDeck(sprite)
     prop:setLoc(X, Y)
-    prop.speed = speed
-    prop.name = name
-    prop.health = 10
-    prop.strength = 2
-    prop.defence = 5
-    prop.agility = 1
     prop.width = 1
     prop.height = 1
+    dude.dir_x = 0
+    dude.dir_y = 0
+    prop.name = name
+    
+    local attrib_table = { speed = 2
+        , move_distance = 2
+        , health = 10
+        , strength = 2
+        , defence = 5
+        , agility = 1
+    }
+    prop.attribs = attrib_table
+
+    -- Prop Methods --
+    prop.move = seek_location
+    prop.rebound = rebound
+
+    function prop:random_move()
+        local X_cur, Y_cur = self:getLoc()
+        local dX = self.attribs['move_distance'] * (math.random() * 2 - 1)
+        local dY = self.attribs['move_distance'] * (math.random() * 2 - 1)
+        local x, y = char_layer:worldToWnd(X_cur + dX, Y_cur + dY)
+        self:move (x, y)
+    end -- prop:random_move()
 
     char_layer:insertProp(prop)
     return prop
@@ -281,7 +322,7 @@ end -- function make_slime ()
 function make_item(X, Y, item_type)
 
     local texture = MOAITexture.new()
-    texture:load( 'images/sword_1.png' )
+    texture:load( 'images/items/sword_1.png' )
     local w, h = texture:getSize()
     local sprite = MOAIGfxQuad2D.new()
     sprite:setTexture( texture )
@@ -302,83 +343,66 @@ end -- function make_slime ()
 
 function setup_world ()
     --[[ Set up our items and characters in the world ]]--
-    dude = make_dude(0, 0, 3)  -- Hero
+    dude = make_dude(-2, 0, 'Hero', 3)  -- Hero
 
     monsters = {
-        make_monster(5, 5, 2, 'slime')       -- Slime 1
-        , make_monster(-3, -2, 1.5, 'slime')   -- Slime 2
-        , make_monster(-1, 4, 2.4, 'slime')    -- Slime 3
+        make_monster(5, 5, 'slime', 2)       -- Slime 1
+        , make_monster(-3, -2, 'slime', 1.5)   -- Slime 2
+        , make_monster(-1, 4, 'slime', 2.4)    -- Slime 3
     }
 
     items = {
-        make_item(5, 0, 'sword')
+        make_item(3, 0, 'sword')
     }
 end -- setup_world()
 
-function play_sound(name)
-    --[[ Play a given sound file ]]--
-    local sound = MOAIUntzSound.new()
-    -- TODO Load sounds when we set up world, not when we need to play them
-    if name == 'item pickup' then sound:load('sounds/pickup_metal.wav')
-    elseif name == 'game over' then sound:load('sounds/kill.wav')
-    elseif name == 'clang' then sound:load('sounds/clang.aiff')
-    elseif name == 'swish' then sound:load('sounds/swish.wav')
-    elseif name == 'clunk' then sound:load('sounds/clunk.wav')
-    end
-    sound:setLooping(false)
-    sound:setPosition(0)
-    sound:setVolume(1)
-    sound:play()
-    return nil
-end -- play_sound(sound_name)
 
-
-function move_prop(prop_obj)
-    -- TODO Turn this into a method of monster object
-    local X_cur, Y_cur = prop_obj:getLoc()
-    local X = math.random(-1,1)
-    local Y = math.random(-1,1)
-    local dist = mh.distance(X, Y, X_cur, Y_cur)
-    local time = dist / prop_obj.speed
-    prop_obj:moveLoc(X, Y, time, MOAIEaseType.LINEAR)
-end -- move_prop(prop_obj)
 
 function game_loop ()
     local frames = 0
     while not game_over do
         coroutine.yield ()
         frames = frames + 1
-        if frames == 90 then
+        if frames == 45 then
             frames = 0
             for i, monster in ipairs(monsters) do
-                move_prop(monster)
+                monster:random_move()
             end
         end
         if MOAIInputMgr.device.mouseLeft:down () then
+            local dest_x, dest_y  = MOAIInputMgr.device.pointer:getLoc()
+            local dest_X, dest_Y = char_layer:wndToWorld(dest_x, dest_y)
+            local prop = map_layer:get_prop(dest_X, dest_Y)
+            if prop.walkable then
+                print(prop.name)
+            else
+                print(prop.name, "Route is blocked.")
+            end
             if dude:isMoving() then
                 dude.move_action:stop()
             end
-            dude:move(MOAIInputMgr.device.pointer:getLoc())
+            dude:move(dest_x, dest_y)
         end
         for i, monster in ipairs (monsters) do
             if collide_rect(monster, dude) then
                 if dude:isMoving() then
                     dude.move_action:stop()
                     attack(dude, monster)
+                    monster:rebound()
                 else
                     attack(monster, dude)
+                    dude:rebound()
                 end
-                dude:rebound()
-                if dude.health <= 0 then
+                if dude.attribs.health <= 0 then
                     print("You died! Game over.")
                     char_layer:removeProp(dude)
-                    play_sound('game over')
+                    sm.play_sound('kill')
                     game_over = true
                     break
-                elseif monster.health <= 0 then
+                elseif monster.attribs.health <= 0 then
                     print('You killed the '..monster.name..'!')
                     char_layer:removeProp(monster)
-                    play_sound('game over')
+                    sm.play_sound('kill')
                     table.remove(monsters, i)
                     break
                 end
@@ -389,7 +413,7 @@ function game_loop ()
                 print("You found a sword!")
                 char_layer:removeProp(item)
                 table.remove(items, i)
-                play_sound('item pickup')
+                sm.play_sound('pickup_metal')
                 break
             end
         end
@@ -404,7 +428,7 @@ function main()
     print("Setting up screen...")
     setup_screen ()
     print("Loading sounds...")
-    setup_sound ()
+    sm.setup_sound()
     print("Setting up world...")
     setup_world ()
     print("done.")

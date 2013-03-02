@@ -1,4 +1,4 @@
-module(..., package.seeall);
+module(..., package.seeall)
 
 function round(num, idp)
     -- Round to idp number of decimal points
