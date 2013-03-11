@@ -23,6 +23,7 @@ function setup_screen ()
     char_layer = MOAILayer2D.new()  -- Character layer
     char_layer:setViewport(viewport)
 
+    map_table = build_map_table()
     map_layer = load_map()
 
     MOAIRenderMgr.pushRenderPass(map_layer)
@@ -37,6 +38,32 @@ function setup_screen ()
 
 end -- setup_screen()
 
+
+function build_map_table()
+
+    map_table = {}
+
+    function map_table:insert_entry(map_prop)
+        local entry = {}
+
+        entry.name = map_prop.name
+        entry.X, entry.Y = map_prop:getLoc()
+        entry.walkable = map_prop.walkable
+        entry.width = 1
+        entry.height = 1
+        
+        function entry:getLoc()
+            return self.X, self. Y
+        end
+
+        table.insert(self, entry)
+        return nil
+    end
+
+    
+
+    return map_table
+end
 
 function load_map()
     --[[ Generate a map layer containing all terrain props ]]--
@@ -102,6 +129,8 @@ function load_map()
             end
             map_prop:setLoc((j-1-scaleWidth/2), (i-1-scaleHeight/2))
             map_layer:insertProp(map_prop)
+            
+            map_table:insert_entry(map_prop)
         end
     end
     
@@ -115,7 +144,8 @@ end -- load_map()
 
 function coords_rect(obj)
     --[[ Return coordinates as (x, y) for all 4 corners of a horizontally
-    aligned rectangle ]]--
+    aligned rectangle. Objects needs a getLoc() method, plus width &
+    height values. ]]--
     local X, Y = obj:getLoc()    -- object's center
     local x1 = X - obj.width / 2
     local x2 = X + obj.width / 2
@@ -209,6 +239,7 @@ function seek_location(self, x, y)
     local time = distance / self.attribs.speed
     self.dir_x = (X - X_cur) / distance -- X unit vector component
     self.dir_y = (Y - Y_cur) / distance -- Y unit vector component
+
     function thread_func()
         self.move_action = self:seekLoc( X, Y, time, MOAIEaseType.LINEAR )
         MOAICoroutine.blockOnAction ( self.move_action )
@@ -218,11 +249,26 @@ function seek_location(self, x, y)
 end -- seek_location(x, y)
 
 function rebound(self)
+    --[[ Bounce backwards from current direction vector. ]]--
     local X_cur, Y_cur = self:getLoc()
     local X_new = X_cur - self.dir_x * 0.5  -- rebound by 1/2 world units
     local Y_new = Y_cur - self.dir_y * 0.5
     self:setLoc(X_new, Y_new)
-end -- rebound()
+end -- rebound(self)
+
+function re_move(self)
+    --[[ Put into last known good location. ]]--
+    self:setLoc( self:get_last_loc() )
+end -- re_move(self)
+
+function get_last_loc(self)
+    return self.last_X, self.last_Y
+end -- get_last_loc()
+
+function set_last_loc(self)
+    self.last_X, self.last_Y = self:getLoc()
+    return nil
+end -- set_last_loc(self)
 
 
 function make_dude(X, Y, name)
@@ -255,6 +301,9 @@ function make_dude(X, Y, name)
     -- Prop Methods --
     dude.move = seek_location
     dude.rebound = rebound
+    dude.set_last_loc = set_last_loc
+    dude.get_last_loc = get_last_loc
+    dude.re_move = re_move
 
     function dude:isMoving()
         if self.move_action ~= nil and self.move_action:isBusy() then
@@ -263,7 +312,7 @@ function make_dude(X, Y, name)
     end
 
     function dude:stop()
-        if self.isMoving() then
+        if self:isMoving() then
             self.move_action:stop()
         end
     end
@@ -304,6 +353,8 @@ function make_monster(X, Y, name)
     -- Prop Methods --
     prop.move = seek_location
     prop.rebound = rebound
+    prop.re_move = re_move
+    prop.set_last_loc = set_last_loc
 
     function prop:random_move()
         local X_cur, Y_cur = self:getLoc()
@@ -417,7 +468,20 @@ function game_loop ()
                 break
             end
         end
+
+        for i, entry in ipairs(map_table) do
+            if not entry.walkable then
+                if collide_rect(entry, dude) then
+                    if dude:isMoving() then
+                        dude:stop()
+                        dude:re_move()
+                    end
+                    break
+                end
+            end
+        end
         --x, y = dude:getLoc()           
+        dude:set_last_loc()
         -- camera:setLoc(x, y, cam_z)
     end -- while not gameOver
     os.exit(0)
