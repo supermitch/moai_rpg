@@ -43,7 +43,7 @@ function build_map_table()
 
     map_table = {}
 
-    function map_table:insert_entry(map_prop)
+    function map_table:insert_entry(map_prop, i, j)
         local entry = {}
 
         entry.name = map_prop.name
@@ -51,16 +51,30 @@ function build_map_table()
         entry.walkable = map_prop.walkable
         entry.width = 1
         entry.height = 1
-        
+
         function entry:getLoc()
             return self.X, self. Y
         end
 
-        table.insert(self, entry)
+        if self[i] == nil then self[i] = {} end -- Ensure row exists first
+        self[i][j] = entry
         return nil
     end
 
-    
+    function map_table:get_coords(X, Y)
+        cur_min = math.huge
+        for i, row in ipairs(self) do
+            for j, entry in ipairs(row) do
+                local dist = mh.distance(X, Y, entry:getLoc())
+                if dist < cur_min then
+                    cur_min = dist
+                    cur_coords_i = i
+                    cur_coords_j = j
+                end
+            end
+        end
+        return cur_coords_i, cur_coords_j
+    end
 
     return map_table
 end
@@ -130,7 +144,7 @@ function load_map()
             map_prop:setLoc((j-1-scaleWidth/2), (i-1-scaleHeight/2))
             map_layer:insertProp(map_prop)
             
-            map_table:insert_entry(map_prop)
+            map_table:insert_entry(map_prop, i, j)
         end
     end
     
@@ -248,6 +262,7 @@ function seek_location(self, x, y)
     self.thread:run( thread_func )
 end -- seek_location(x, y)
 
+
 function rebound(self)
     --[[ Bounce backwards from current direction vector. ]]--
     local X_cur, Y_cur = self:getLoc()
@@ -256,14 +271,17 @@ function rebound(self)
     self:setLoc(X_new, Y_new)
 end -- rebound(self)
 
+
 function re_move(self)
     --[[ Put into last known good location. ]]--
     self:setLoc( self:get_last_loc() )
 end -- re_move(self)
 
+
 function get_last_loc(self)
     return self.last_X, self.last_Y
 end -- get_last_loc()
+
 
 function set_last_loc(self)
     self.last_X, self.last_Y = self:getLoc()
@@ -299,7 +317,7 @@ function make_dude(X, Y, name)
     dude.attribs = attrib_table
 
     -- Prop Methods --
-    dude.move = seek_location
+    dude.move = seek_location -- old method using seekLoc()
     dude.rebound = rebound
     dude.set_last_loc = set_last_loc
     dude.get_last_loc = get_last_loc
@@ -408,9 +426,22 @@ function setup_world ()
 end -- setup_world()
 
 
-
 function game_loop ()
     local frames = 0
+
+    if MOAIInputMgr.device.keyboard then
+        print("Keyboard found.")
+        MOAIInputMgr.device.keyboard:setCallback (
+            function (key, down)
+                if down == true then
+                    print("Key pressed: "..string.char(tostring(key)))
+                end
+            end
+        )
+    else
+        print("No keyboard...")
+    end
+
     while not game_over do
         coroutine.yield ()
         frames = frames + 1
@@ -420,18 +451,18 @@ function game_loop ()
                 monster:random_move()
             end
         end
+        
         if MOAIInputMgr.device.mouseLeft:down () then
             local dest_x, dest_y  = MOAIInputMgr.device.pointer:getLoc()
             local dest_X, dest_Y = char_layer:wndToWorld(dest_x, dest_y)
             local prop = map_layer:get_prop(dest_X, dest_Y)
-            if prop.walkable then
-                print(prop.name)
-            else
+            if not prop.walkable then
                 print(prop.name, "Route is blocked.")
-            end
+            end                
             if dude:isMoving() then
                 dude.move_action:stop()
             end
+            print(map_table:get_coords(dest_X, dest_Y))
             dude:move(dest_x, dest_y)
         end
         for i, monster in ipairs (monsters) do
@@ -469,14 +500,16 @@ function game_loop ()
             end
         end
 
-        for i, entry in ipairs(map_table) do
-            if not entry.walkable then
-                if collide_rect(entry, dude) then
-                    if dude:isMoving() then
-                        dude:stop()
-                        dude:re_move()
+        for i, row in ipairs(map_table) do
+            for j, entry in ipairs(row) do
+                if not entry.walkable then
+                    if collide_rect(entry, dude) then
+                        if dude:isMoving() then
+                            dude:stop()
+                            dude:re_move()
+                        end
+                        break
                     end
-                    break
                 end
             end
         end
