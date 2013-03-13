@@ -227,7 +227,8 @@ function attack(attacker, defender)
 
     if calc_hit(attacker.attribs.agility, defender.attribs.agility) then
         io.write(sh.firstToUpper(attacker.name).." hit! ")
-        local damage = calc_damage(attacker.attribs.strength, defender.attribs.defence)
+        local damage = calc_damage(attacker.attribs.strength,
+                                   defender.attribs.defence)
         if damage then
             sm.play_sound('clang')
             print(sh.firstToUpper(defender.name).." lost "..damage.." health!")
