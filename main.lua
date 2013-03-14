@@ -7,32 +7,44 @@ function setup_screen ()
 
     print("Starting up on: [" .. MOAIEnvironment.osBrand .."]")
 
-    screenWidth = MOAIEnvironment.horizontalResolution or 640
-    screenHeight = MOAIEnvironment.verticalResolution or 480
+    map_height = 512
+    cont_height = 128
 
-    scaleWidth = 16
-    scaleHeight = math.floor(scaleWidth * screenHeight / screenWidth)
-    print("W:"..scaleWidth.." H:"..scaleHeight)
+    screen_width = MOAIEnvironment.horizontalResolution or 512
+    screen_height = MOAIEnvironment.verticalResolution or
+                    map_height + cont_height
 
-    MOAISim.openWindow("Window", screenWidth, screenHeight)
+    scale_width = 16
+    scale_height = math.floor(scale_width * map_height / screen_width)
+    print("W:"..scale_width.." H:"..scale_height)
 
-    viewport = MOAIViewport.new()
-    viewport:setSize(screenWidth, screenHeight)
-    viewport:setScale(scaleWidth, scaleHeight)
+    MOAISim.openWindow("Ancestors", screen_width, screen_height)
+
+    map_viewport = MOAIViewport.new()
+    map_viewport:setSize(0, 0, screen_width, map_height)
+    map_viewport:setScale(scale_width, scale_height)
+
+    controls_viewport = MOAIViewport.new()
+    controls_viewport:setSize(0, map_height, screen_width,
+                              map_height + cont_height)
+    controls_viewport:setScale(screen_width, cont_height)
 
     char_layer = MOAILayer2D.new()  -- Character layer
-    char_layer:setViewport(viewport)
+    char_layer:setViewport(map_viewport)
 
     map_table = build_map_table()
-    map_layer = load_map()
+    map_layer = load_map(map_viewport)
+
+    cont_layer = load_controller(controls_viewport)
 
     MOAIRenderMgr.pushRenderPass(map_layer)
     MOAIRenderMgr.pushRenderPass(char_layer)
+    MOAIRenderMgr.pushRenderPass(cont_layer)
 
-    camera = MOAICamera.new ()
-    cam_z = camera:getFocalLength( screenWidth )
+    --[[camera = MOAICamera.new ()
+    cam_z = camera:getFocalLength( screen_width )
     camera:setLoc(0, 0, cam_z)
-    map_layer:setCamera(camera)
+    map_layer:setCamera(camera) --]]
 
     MOAIGfxDevice.setClearColor(1, 0.41, 0.70, 1)
 
@@ -79,11 +91,29 @@ function build_map_table()
     return map_table
 end
 
-function load_map()
+function load_controller(controls_viewport)
+
+    local ui = MOAIGfxQuad2D.new()
+    ui:setTexture("images/ui/controller.png")
+    ui:setRect(-256, -64, 256, 64)
+
+    local ui_prop = MOAIProp2D.new()
+    ui_prop:setDeck(ui)
+    ui_prop:setLoc(0, 0)
+
+    local control_layer = MOAILayer2D.new()
+    control_layer:setViewport(controls_viewport)
+    control_layer:insertProp(ui_prop)
+
+    return control_layer
+end
+
+
+function load_map(map_viewport)
     --[[ Generate a map layer containing all terrain props ]]--
 
     map_layer = MOAILayer2D.new()
-    map_layer:setViewport(viewport)
+    map_layer:setViewport(map_viewport)
 
     local grass = MOAIGfxQuad2D.new()
     grass:setTexture("images/maps/grass_1.png")
@@ -101,21 +131,22 @@ function load_map()
     sand_rock:setTexture("images/maps/rock_2.png")
     sand_rock:setRect(-0.5, -0.5, 0.5, 0.5)
 
-    map = {{2,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1,1}
-          ,{2,2,2,2,1,1,1,1,1,1,1,1,1,1,2,2,2}
-          ,{2,2,2,2,1,1,1,1,1,1,1,1,1,2,2,2,2}
-          ,{2,2,2,2,2,2,1,1,1,1,1,1,2,2,2,2,2}
-          ,{1,2,2,2,2,2,1,1,3,1,1,1,2,2,2,2,2}
-          ,{1,2,2,2,2,2,1,1,1,1,1,1,2,2,4,2,2}
-          ,{1,1,2,2,2,2,2,1,1,1,1,2,2,4,4,2,2}
-          ,{1,1,1,2,2,1,1,1,1,1,1,1,1,4,4,2,2}
-          ,{1,1,2,2,2,2,2,1,1,1,1,2,2,4,2,2,2}
-          ,{1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,2,2}
-          ,{1,1,1,1,1,1,3,1,3,1,1,1,2,2,2,2,2}
-          ,{1,1,1,1,1,3,3,1,1,1,1,1,2,2,2,2,2}
-          ,{1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2}
-          ,{1,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2,2}
-          ,{1,1,1,1,1,1,1,1,1,1,1,1,1,1,2,2,2}}
+    map = {{4,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1}
+          ,{2,2,2,2,1,1,1,1,1,1,1,1,1,1,2,2}
+          ,{2,2,2,2,1,1,1,1,1,1,1,1,1,2,2,2}
+          ,{2,2,2,2,2,2,1,1,1,1,1,1,2,2,2,2}
+          ,{1,2,2,2,2,2,1,1,3,1,1,1,2,2,2,4}
+          ,{1,2,2,2,2,2,1,1,1,1,1,1,2,2,4,4}
+          ,{1,1,2,2,2,2,2,1,1,1,1,2,2,4,4,4}
+          ,{2,1,2,1,2,1,2,1,2,1,2,1,2,4,4,4}
+          ,{1,1,2,2,2,2,2,1,1,1,1,2,2,4,2,4}
+          ,{1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,2}
+          ,{1,1,1,1,1,1,3,1,3,1,1,1,2,2,2,2}
+          ,{1,1,1,1,1,3,3,1,1,1,1,1,2,2,2,2}
+          ,{1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2}
+          ,{1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2}
+          ,{3,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2}
+          ,{3,3,1,1,1,1,1,1,1,1,1,1,1,1,2,2}}
 
     for i, row in pairs(map) do
         for j, value in pairs(row) do
@@ -136,12 +167,13 @@ function load_map()
                 map_prop.walkable = false
             else
                 error("Invalid map value at ("..i..","..j..") = "..value)
-                map_prop:setDec(grass)
+                map_prop:setDeck(grass)
             end
             if map_prop.walkable == nil then
                 map_prop.walkable = true
             end
-            map_prop:setLoc((j-1-scaleWidth/2), (i-1-scaleHeight/2))
+            print(i, j)
+            map_prop:setLoc((j-1-scale_width/2), (scale_height/2-(i-1)))
             map_layer:insertProp(map_prop)
             
             map_table:insert_entry(map_prop, i, j)
@@ -413,13 +445,14 @@ end -- function make_slime ()
 
 function setup_world ()
     --[[ Set up our items and characters in the world ]]--
-    dude = make_dude(-2, 0, 'Hero', 3)  -- Hero
+    dude = make_dude(0, 0, 'Hero', 3)  -- Hero
 
-    monsters = {
+    monsters = { }
+    --[[
         make_monster(5, 5, 'slime', 2)       -- Slime 1
         , make_monster(-3, -2, 'slime', 1.5)   -- Slime 2
         , make_monster(-1, 4, 'slime', 2.4)    -- Slime 3
-    }
+    }]]--
 
     items = {
         make_item(3, 0, 'sword')
