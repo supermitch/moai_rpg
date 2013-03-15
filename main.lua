@@ -517,7 +517,6 @@ function game_loop ()
                     print(entry.name, "walkable")
                 else
                     print(entry.name, "blocked")
-                    sm.play_sound('blip')
                 end
                 if dude:isMoving() then
                     dude.move_action:stop()
@@ -567,6 +566,7 @@ function game_loop ()
                 if not entry.walkable then
                     if collide_rect(entry, dude) then
                         if dude:isMoving() then
+                            sm.play_sound('blip')
                             dude:stop()
                             dude:re_move()
                         end
