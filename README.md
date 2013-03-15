@@ -16,9 +16,9 @@ To run the program:
 
 ## How to play ##
 
-* Click the screen to walk around.
-* Attack enemies by walking into them.
-* Pick up items by walking over them.
+* Click the screen to walk around
+* Attack enemies by walking into them
+* Pick up items by walking over them
 * If you're stationary, you will take damage if monsters attack!
 
 ## Screenshot ##
