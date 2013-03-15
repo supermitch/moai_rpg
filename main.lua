@@ -1,18 +1,28 @@
 mh = require 'lib/helpers/math_helper'      -- helper math module
 sh = require 'lib/helpers/string_helper'    -- helper string module
 sm = require 'lib/sound_mgr'                -- sound effects manager
+rect = require 'lib/rect'                   -- Rectangle class
+
+function pick_viewport(viewports, x, y)
+    for k, vp in pairs(viewports) do
+        if vp.rect:collide_point(x, y) then
+            return vp.name
+        end
+    end
+end
 
 function setup_screen ()
     -- Set up viewports, layers, maps, etc
 
     print("Starting up on: [" .. MOAIEnvironment.osBrand .."]")
 
+    screen_width = 512
     map_height = 512
     cont_height = 128
 
-    screen_width = MOAIEnvironment.horizontalResolution or 512
+    screen_width = MOAIEnvironment.horizontalResolution or screen_width
     screen_height = MOAIEnvironment.verticalResolution or
-                    map_height + cont_height
+                    (map_height + cont_height)
 
     scale_width = 16
     scale_height = math.floor(scale_width * map_height / screen_width)
@@ -20,31 +30,37 @@ function setup_screen ()
 
     MOAISim.openWindow("Ancestors", screen_width, screen_height)
 
+    -- Set up map viewport
+    local map_rect = rect.Rectangle.new(0, 0, screen_width, map_height)
     map_viewport = MOAIViewport.new()
-    map_viewport:setSize(0, 0, screen_width, map_height)
+    map_viewport:setSize( map_rect:get_edges() )
     map_viewport:setScale(scale_width, scale_height)
+    map_viewport.rect = map_rect
+    map_viewport.name = 'map'
 
-    controls_viewport = MOAIViewport.new()
-    controls_viewport:setSize(0, map_height, screen_width,
-                              map_height + cont_height)
-    controls_viewport:setScale(screen_width, cont_height)
-
-    char_layer = MOAILayer2D.new()  -- Character layer
-    char_layer:setViewport(map_viewport)
-
-    map_table = build_map_table()
+        -- Build map layer
+    map_table = build_map_table()   -- Lightweight map array
     map_layer = load_map(map_viewport)
-
-    cont_layer = load_controller(controls_viewport)
-
     MOAIRenderMgr.pushRenderPass(map_layer)
-    MOAIRenderMgr.pushRenderPass(char_layer)
-    MOAIRenderMgr.pushRenderPass(cont_layer)
 
-    --[[camera = MOAICamera.new ()
-    cam_z = camera:getFocalLength( screen_width )
-    camera:setLoc(0, 0, cam_z)
-    map_layer:setCamera(camera) --]]
+        -- Build character layer
+    char_layer = MOAILayer2D.new()
+    char_layer:setViewport(map_viewport)
+    MOAIRenderMgr.pushRenderPass(char_layer)
+    
+    -- Set up controls viewport
+    local cont_rect = rect.Rectangle.new(0, map_height, screen_width,
+                                   map_height + cont_height)
+    cont_viewport = MOAIViewport.new()
+    cont_viewport:setSize( cont_rect:get_edges() )
+    cont_viewport:setScale( screen_width, cont_height )
+    cont_viewport.rect = cont_rect
+    cont_viewport.name = 'controller'
+
+    viewports = { map_viewport, cont_viewport }
+
+    cont_layer = load_controller(cont_viewport)
+    MOAIRenderMgr.pushRenderPass(cont_layer)
 
     MOAIGfxDevice.setClearColor(1, 0.41, 0.70, 1)
 
@@ -86,6 +102,12 @@ function build_map_table()
             end
         end
         return cur_coords_i, cur_coords_j
+    end
+
+    function map_table:get_entry(X, Y)
+        i, j = self:get_coords(X, Y)
+        if i == nil or j == nil then return nil end
+        return self[i][j]
     end
 
     return map_table
@@ -172,7 +194,6 @@ function load_map(map_viewport)
             if map_prop.walkable == nil then
                 map_prop.walkable = true
             end
-            print(i, j)
             map_prop:setLoc((j-1-scale_width/2), (scale_height/2-(i-1)))
             map_layer:insertProp(map_prop)
             
@@ -447,12 +468,11 @@ function setup_world ()
     --[[ Set up our items and characters in the world ]]--
     dude = make_dude(0, 0, 'Hero', 3)  -- Hero
 
-    monsters = { }
-    --[[
+    monsters = { 
         make_monster(5, 5, 'slime', 2)       -- Slime 1
         , make_monster(-3, -2, 'slime', 1.5)   -- Slime 2
         , make_monster(-1, 4, 'slime', 2.4)    -- Slime 3
-    }]]--
+    }
 
     items = {
         make_item(3, 0, 'sword')
@@ -489,15 +509,22 @@ function game_loop ()
         if MOAIInputMgr.device.mouseLeft:down () then
             local dest_x, dest_y  = MOAIInputMgr.device.pointer:getLoc()
             local dest_X, dest_Y = char_layer:wndToWorld(dest_x, dest_y)
-            local prop = map_layer:get_prop(dest_X, dest_Y)
-            if not prop.walkable then
-                print(prop.name, "Route is blocked.")
-            end                
-            if dude:isMoving() then
-                dude.move_action:stop()
+
+            local vp_name = pick_viewport(viewports, dest_x, dest_y)
+            if vp_name == 'map' then
+                local entry = map_table:get_entry(dest_X, dest_Y)
+                if entry.walkable then
+                    print(entry.name, "walkable")
+                else
+                    print(entry.name, "blocked")
+                end
+                if dude:isMoving() then
+                    dude.move_action:stop()
+                end
+                dude:move(dest_x, dest_y)
+            elseif vp_name == 'controller' then
+                print ("controller")
             end
-            print(map_table:get_coords(dest_X, dest_Y))
-            dude:move(dest_x, dest_y)
         end
         for i, monster in ipairs (monsters) do
             if collide_rect(monster, dude) then
