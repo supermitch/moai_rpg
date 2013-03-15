@@ -9,7 +9,45 @@ function pick_viewport(viewports, x, y)
             return vp.name
         end
     end
+    return nil
 end
+
+function pick_hotspot(hotspots, x, y)
+    for key, hotspot in pairs(hotspots) do
+        if hotspot:collide_point(x, y) then
+            return key
+        end
+    end
+    return nil
+end
+
+
+function set_cont_hotspots(vp_rect)
+    -- unused, but could be used to determine offsets
+    local left, top, right, bottom = vp_rect:get_edges()
+    local hotspots = {}
+    -- left, top, right, bottom
+    local up = rect.Rectangle.new(77, 528, 110, 562)
+    local dn = rect.Rectangle.new(77, 594, 110, 626)
+    local lf = rect.Rectangle.new(45, 561, 77, 594)
+    local rt = rect.Rectangle.new(110, 562, 143, 594)
+    local selec = rect.Rectangle.new(180, 573, 242, 611)
+    local start = rect.Rectangle.new(241, 570, 308, 610)
+    local B = rect.Rectangle.new(338, 552, 396, 612)
+    local A = rect.Rectangle.new(405, 552, 462, 612)
+
+    hotspots.up = up
+    hotspots.down = dn
+    hotspots.left = lf
+    hotspots.right = rt
+    hotspots.B = B
+    hotspots.A = A
+    hotspots.select = selec
+    hotspots.start = start
+
+    return hotspots
+end
+
 
 function setup_screen ()
     -- Set up viewports, layers, maps, etc
@@ -56,6 +94,8 @@ function setup_screen ()
     cont_viewport:setScale( screen_width, cont_height )
     cont_viewport.rect = cont_rect
     cont_viewport.name = 'controller'
+
+    cont_hotspots = set_cont_hotspots(cont_viewport.rect)
 
     viewports = { map_viewport, cont_viewport }
 
@@ -468,11 +508,12 @@ function setup_world ()
     --[[ Set up our items and characters in the world ]]--
     dude = make_dude(0, 0, 'Hero', 3)  -- Hero
 
-    monsters = { 
+    monsters = { } 
+        --[[
         make_monster(5, 5, 'slime', 2)       -- Slime 1
         , make_monster(-3, -2, 'slime', 1.5)   -- Slime 2
         , make_monster(-1, 4, 'slime', 2.4)    -- Slime 3
-    }
+    } ]]--
 
     items = {
         make_item(3, 0, 'sword')
@@ -514,16 +555,17 @@ function game_loop ()
             if vp_name == 'map' then
                 local entry = map_table:get_entry(dest_X, dest_Y)
                 if entry.walkable then
-                    print(entry.name, "walkable")
+                    print('Map: '..entry.name..' (walkable)')
                 else
-                    print(entry.name, "blocked")
+                    print('Map: '..entry.name..' (blocked)')
                 end
                 if dude:isMoving() then
                     dude.move_action:stop()
                 end
                 dude:move(dest_x, dest_y)
             elseif vp_name == 'controller' then
-                print ("controller")
+                hotspot = pick_hotspot(cont_hotspots, dest_x, dest_y)
+                print ("Controller: "..(hotspot or 'nil'))
             end
         end
         for i, monster in ipairs (monsters) do
