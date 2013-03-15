@@ -4,6 +4,10 @@ My first Moai project.
 
 ## Installation ##
 
+First [download Moai](http://getmoai.com/home/moai-sdk-download.html).
+
+Once you've got Moai up and running, you're laughing.
+
 To run the program:
 
 * Clone this project anywhere on your computer
