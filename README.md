@@ -23,4 +23,4 @@ To run the program:
 
 ## Screenshot ##
 
-![MOAI-RPG](http://i.imgur.com/Q1Ly9XV.png)
+![MOAI-RPG](http://i.imgur.com/A4Tzdm7.png)
