@@ -1,5 +1,6 @@
-mh = require 'lib/helpers/math_helper'      -- helper math module
-sh = require 'lib/helpers/string_helper'    -- helper string module
+mh = require 'lib/helpers/math_helper'      -- math helper module
+sh = require 'lib/helpers/string_helper'    -- strings helper module
+th = require 'lib/helpers/table_helper'     -- lua tables helper module
 sm = require 'lib/sound_mgr'                -- sound effects manager
 rect = require 'lib/rect'                   -- Rectangle class
 
@@ -111,21 +112,21 @@ function build_map_table()
 
     map_table = {}
 
-    function map_table:insert_entry(map_prop, i, j)
-        local entry = {}
+    function map_table:insert_tile(map_prop, i, j)
+        local tile = {}
 
-        entry.name = map_prop.name
-        entry.X, entry.Y = map_prop:getLoc()
-        entry.walkable = map_prop.walkable
-        entry.width = 1
-        entry.height = 1
+        tile.name = map_prop.name
+        tile.X, tile.Y = map_prop:getLoc()
+        tile.walkable = map_prop.walkable
+        tile.width = 1
+        tile.height = 1
 
-        function entry:getLoc()
+        function tile:getLoc()
             return self.X, self. Y
         end
 
         if self[i] == nil then self[i] = {} end -- Ensure row exists first
-        self[i][j] = entry
+        self[i][j] = tile
         return nil
     end
 
@@ -133,8 +134,8 @@ function build_map_table()
         -- Return the [i][j] indices of the tile at world coords (X, Y)
         cur_min = math.huge
         for i, row in ipairs(self) do
-            for j, entry in ipairs(row) do
-                local dist = mh.distance(X, Y, entry:getLoc())
+            for j, tile in ipairs(row) do
+                local dist = mh.distance(X, Y, tile:getLoc())
                 if dist < cur_min then
                     cur_min = dist
                     cur_coords_i = i
@@ -145,7 +146,7 @@ function build_map_table()
         return cur_coords_i, cur_coords_j
     end
 
-    function map_table:get_entry(X, Y)
+    function map_table:get_tile(X, Y)
         -- Return the actual tile at the world coordinate (X, Y)
         i, j = self:get_coords(X, Y)
         if i == nil or j == nil then return nil end
@@ -244,7 +245,7 @@ function load_map(map_viewport)
             map_prop:setLoc((j-0.5-scale_width/2), (scale_height/2-(i-0.5)))
             map_layer:insertProp(map_prop)
             
-            map_table:insert_entry(map_prop, i, j)
+            map_table:insert_tile(map_prop, i, j)
         end
     end
     
@@ -345,10 +346,9 @@ function attack(attacker, defender)
 end -- attack(attacker, defender)
 
 
-function seek_location(self, x, y)
-    --[[ A prop method for seeking an (x,y) location. ]]--
+function seek_location(self, X, Y)
+    --[[ A prop method for seeking an (X,Y) world unit location. ]]--
     local X_cur, Y_cur = self:getLoc()
-    local X, Y = char_layer:wndToWorld( x, y )
     local distance = mh.distance(X, Y, X_cur, Y_cur)
     if distance <= 0 then return nil end
     local time = distance / self.attribs.speed
@@ -424,6 +424,32 @@ function make_dude(i, j, name)
     dude.get_last_loc = get_last_loc
     dude.re_move = re_move
 
+
+    function dude:move_cell(direction)
+        local i, j = map_table:get_coords(dude:getLoc())
+        if direction == 'up' then
+            next_i, next_j = i - 1, j
+        elseif direction == 'down' then
+            next_i, next_j = i + 1, j
+        elseif direction == 'left' then
+            next_i, next_j = i, j - 1
+        elseif direction == 'right' then
+            next_i, next_j = i, j + 1
+        else
+            print('Warning: bad direction ('..(direction or 'nil')..')')
+        end
+        if direction == nil then
+            return nil
+        end
+        local tile = map_table[next_i][next_j]
+        if tile.walkable then
+            dude:stop()
+            dude:move(tile:getLoc())
+        else
+            sm.play_sound('blip')
+        end
+    end
+
     function dude:isMoving()
         if self.move_action ~= nil and self.move_action:isBusy() then
             return true
@@ -479,8 +505,7 @@ function make_monster(i, j, name)
         local X_cur, Y_cur = self:getLoc()
         local dX = self.attribs['move_distance'] * (math.random() * 2 - 1)
         local dY = self.attribs['move_distance'] * (math.random() * 2 - 1)
-        local x, y = char_layer:worldToWnd(X_cur + dX, Y_cur + dY)
-        self:move (x, y)
+        self:move (X_cur + dX, Y_cur + dY)
     end -- prop:random_move()
 
     char_layer:insertProp(prop)
@@ -560,20 +585,23 @@ function game_loop ()
 
             local vp_name = pick_viewport(viewports, dest_x, dest_y)
             if vp_name == 'map' then
-                local entry = map_table:get_entry(dest_X, dest_Y)
+                local tile = map_table:get_tile(dest_X, dest_Y)
                 print(map_table:get_coords(dest_X, dest_Y))
-                if entry.walkable then
-                    print('Map: '..entry.name..' (walkable)')
+                if tile.walkable then
+                    print('Map: '..tile.name..' (walkable)')
                 else
-                    print('Map: '..entry.name..' (blocked)')
+                    print('Map: '..tile.name..' (blocked)')
                 end
                 if dude:isMoving() then
                     dude.move_action:stop()
                 end
-                dude:move(dest_x, dest_y)
+                dude:move(dest_X, dest_Y)
             elseif vp_name == 'controller' then
                 hotspot = pick_hotspot(cont_hotspots, dest_x, dest_y)
                 print ("Controller: "..(hotspot or 'nil'))
+                if th.is_in(hotspot, {'up', 'down', 'left', 'right'}) then
+                    dude:move_cell(hotspot)
+                end
             end
         end
         for i, monster in ipairs (monsters) do
@@ -612,9 +640,9 @@ function game_loop ()
         end
 
         for i, row in ipairs(map_table) do
-            for j, entry in ipairs(row) do
-                if not entry.walkable then
-                    if collide_rect(entry, dude) then
+            for j, tile in ipairs(row) do
+                if not tile.walkable then
+                    if collide_rect(tile, dude) then
                         if dude:isMoving() then
                             sm.play_sound('blip')
                             dude:stop()
