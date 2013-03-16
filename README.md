@@ -22,11 +22,17 @@ To run the program:
 
 ## Controls ##
 
+### Movement ###
+
 * Click anywhere on the map to attempt to move to that location
 
 Alternatively:
 
 * Click the controller d-pad to move up, down, left or right
+
+### Menus ###
+
+* Click *start* to quit
 
 ## Screenshot ##
 
