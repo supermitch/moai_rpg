@@ -26,7 +26,7 @@ To run the program:
 
 Alternatively:
 
-* Click the controllers d-pad to move up, down, left or right
+* Click the controller d-pad to move up, down, left or right
 
 ## Screenshot ##
 
