@@ -28,11 +28,11 @@ To run the program:
 
 Alternatively:
 
-* Click the controller d-pad to move up, down, left or right
+* Click the controller **d-pad** to move up, down, left or right
 
 ### Menus ###
 
-* Click *start* to quit
+* Click controller **start** to quit
 
 ## Screenshot ##
 
