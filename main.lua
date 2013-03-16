@@ -193,7 +193,7 @@ function load_map(map_viewport)
     sand_rock:setTexture("images/maps/rock_2.png")
     sand_rock:setRect(-0.5, -0.5, 0.5, 0.5)
 
-    map = {{4,2,2,2,2,1,1,1,1,1,1,1,1,1,1,1}
+    map = {{4,2,2,2,2,1,1,1,1,1,1,1,1,1,1,4}
           ,{2,2,2,2,1,1,1,1,1,1,1,1,1,1,2,2}
           ,{2,2,2,2,1,1,1,1,1,1,1,1,1,2,2,2}
           ,{2,2,2,2,2,2,1,1,1,1,1,1,2,2,2,2}
@@ -208,7 +208,7 @@ function load_map(map_viewport)
           ,{1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2}
           ,{1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2}
           ,{3,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2}
-          ,{3,3,1,1,1,1,1,1,1,1,1,1,1,1,2,2}}
+          ,{3,3,1,1,1,1,1,1,1,1,1,1,1,1,2,4}}
 
     for i, row in pairs(map) do
         for j, value in pairs(row) do
@@ -234,7 +234,7 @@ function load_map(map_viewport)
             if map_prop.walkable == nil then
                 map_prop.walkable = true
             end
-            map_prop:setLoc((j-1-scale_width/2), (scale_height/2-(i-1)))
+            map_prop:setLoc((j-0.5-scale_width/2), (scale_height/2-(i-0.5)))
             map_layer:insertProp(map_prop)
             
             map_table:insert_entry(map_prop, i, j)
@@ -506,7 +506,7 @@ end -- function make_slime ()
 
 function setup_world ()
     --[[ Set up our items and characters in the world ]]--
-    dude = make_dude(0, 0, 'Hero', 3)  -- Hero
+    dude = make_dude(0.5, 0.5, 'Hero', 3)  -- Hero
 
     monsters = { } 
         --[[
@@ -516,7 +516,7 @@ function setup_world ()
     } ]]--
 
     items = {
-        make_item(3, 0, 'sword')
+        make_item(3.5, 0.5, 'sword')
     }
 end -- setup_world()
 
@@ -554,6 +554,7 @@ function game_loop ()
             local vp_name = pick_viewport(viewports, dest_x, dest_y)
             if vp_name == 'map' then
                 local entry = map_table:get_entry(dest_X, dest_Y)
+                print(map_table:get_coords(dest_X, dest_Y))
                 if entry.walkable then
                     print('Map: '..entry.name..' (walkable)')
                 else
