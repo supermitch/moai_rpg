@@ -130,6 +130,7 @@ function build_map_table()
     end
 
     function map_table:get_coords(X, Y)
+        -- Return the [i][j] indices of the tile at world coords (X, Y)
         cur_min = math.huge
         for i, row in ipairs(self) do
             for j, entry in ipairs(row) do
@@ -145,9 +146,15 @@ function build_map_table()
     end
 
     function map_table:get_entry(X, Y)
+        -- Return the actual tile at the world coordinate (X, Y)
         i, j = self:get_coords(X, Y)
         if i == nil or j == nil then return nil end
         return self[i][j]
+    end
+
+    function map_table:get_loc(i, j)
+        -- Return the position (in world coords) of the tile at indices [i][j]
+        return self[i][j]:getLoc()
     end
 
     return map_table
@@ -383,7 +390,7 @@ function set_last_loc(self)
 end -- set_last_loc(self)
 
 
-function make_dude(X, Y, name)
+function make_dude(i, j, name)
     -- Main character render --
     local texture = MOAITexture.new()
     texture:load( 'images/chars/dude_1.png' )
@@ -394,7 +401,7 @@ function make_dude(X, Y, name)
 
     dude = MOAIProp2D.new()
     dude:setDeck(sprite)
-    dude:setLoc(X, Y)
+    dude:setLoc(map_table:get_loc(i, j))
     dude.width = 1
     dude.height = 1
     dude.dir_x = 0
@@ -435,7 +442,7 @@ function make_dude(X, Y, name)
 end -- function make_dude ()
 
 
-function make_monster(X, Y, name)
+function make_monster(i, j, name)
 
     -- Slime character render --
     local texture = MOAITexture.new()
@@ -446,7 +453,7 @@ function make_monster(X, Y, name)
     sprite:setRect(-w/32, -h/32, w/32, h/32) --i.e. (w/2) / (16 px/world unit)
     local prop = MOAIProp2D.new()
     prop:setDeck(sprite)
-    prop:setLoc(X, Y)
+    prop:setLoc(map_table:get_loc(i, j))
     prop.width = 1
     prop.height = 1
     dude.dir_x = 0
@@ -482,7 +489,7 @@ function make_monster(X, Y, name)
 end -- function make_slime ()
 
 
-function make_item(X, Y, item_type)
+function make_item(i, j, item_type)
 
     local texture = MOAITexture.new()
     texture:load( 'images/items/sword_1.png' )
@@ -493,7 +500,7 @@ function make_item(X, Y, item_type)
 
     local prop = MOAIProp2D.new()
     prop:setDeck(sprite)
-    prop:setLoc(X, Y)
+    prop:setLoc(map_table:get_loc(i, j))
     prop.item_type = item_type
 
     prop.width = 1
@@ -506,17 +513,16 @@ end -- function make_slime ()
 
 function setup_world ()
     --[[ Set up our items and characters in the world ]]--
-    dude = make_dude(0.5, 0.5, 'Hero', 3)  -- Hero
+    dude = make_dude(8, 9, 'Hero', 3)  -- Hero
 
-    monsters = { } 
-        --[[
+    monsters = {
         make_monster(5, 5, 'slime', 2)       -- Slime 1
-        , make_monster(-3, -2, 'slime', 1.5)   -- Slime 2
-        , make_monster(-1, 4, 'slime', 2.4)    -- Slime 3
-    } ]]--
+        , make_monster(3, 2, 'slime', 1.5)   -- Slime 2
+        , make_monster(15, 7, 'slime', 2.4)    -- Slime 3
+    }
 
     items = {
-        make_item(3.5, 0.5, 'sword')
+        make_item(4, 3, 'sword')
     }
 end -- setup_world()
 
@@ -548,6 +554,7 @@ function game_loop ()
         end
         
         if MOAIInputMgr.device.mouseLeft:down () then
+
             local dest_x, dest_y  = MOAIInputMgr.device.pointer:getLoc()
             local dest_X, dest_Y = char_layer:wndToWorld(dest_x, dest_y)
 
