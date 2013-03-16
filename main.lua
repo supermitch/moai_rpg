@@ -585,22 +585,18 @@ function game_loop ()
 
             local vp_name = pick_viewport(viewports, dest_x, dest_y)
             if vp_name == 'map' then
-                local tile = map_table:get_tile(dest_X, dest_Y)
-                print(map_table:get_coords(dest_X, dest_Y))
-                if tile.walkable then
-                    print('Map: '..tile.name..' (walkable)')
-                else
-                    print('Map: '..tile.name..' (blocked)')
-                end
                 if dude:isMoving() then
-                    dude.move_action:stop()
+                    dude:stop()
                 end
                 dude:move(dest_X, dest_Y)
             elseif vp_name == 'controller' then
                 hotspot = pick_hotspot(cont_hotspots, dest_x, dest_y)
-                print ("Controller: "..(hotspot or 'nil'))
                 if th.is_in(hotspot, {'up', 'down', 'left', 'right'}) then
                     dude:move_cell(hotspot)
+                elseif hotspot == 'start' then
+                    os.exit(0)
+                else
+                    print ("Controller: "..(hotspot or 'nil'))
                 end
             end
         end
@@ -653,12 +649,11 @@ function game_loop ()
                 end
             end
         end
-        --x, y = dude:getLoc()           
         dude:set_last_loc()
-        -- camera:setLoc(x, y, cam_z)
     end -- while not gameOver
     os.exit(0)
 end -- game_loop()
+
 
 function main()
     game_over = false
@@ -674,5 +669,6 @@ function main()
     mainThread = MOAICoroutine.new ()
     mainThread:run ( game_loop )
 end -- main()
+
 
 main() -- Run program
