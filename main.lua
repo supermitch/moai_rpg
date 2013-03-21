@@ -5,6 +5,9 @@ sm = require 'lib/sound_mgr'                -- sound effects manager
 rect = require 'lib/rect'                   -- Rectangle class
 
 function pick_viewport(viewports, x, y)
+    --[[ Returns the name of the viewport under the given (x, y) position.
+    viewports is a table of viewport objects, which must have a .rect
+    attribute. (x, y) coords are in screen units. ]]--
     for k, vp in pairs(viewports) do
         if vp.rect:collide_point(x, y) then
             return vp.name
@@ -14,6 +17,9 @@ function pick_viewport(viewports, x, y)
 end
 
 function pick_hotspot(hotspots, x, y)
+    --[[ Given a table of hotspots, returns the hotspot name (which is the
+    table key) for the hotspot under the (x, y) coordinate. Returns nil if
+    there is no hotspot under that point.]]--
     for key, hotspot in pairs(hotspots) do
         if hotspot:collide_point(x, y) then
             return key
@@ -24,6 +30,12 @@ end
 
 
 function set_cont_hotspots(vp_rect)
+    --[[ Generate a table of hotspots. Hotspots are simply Rectangles
+    (should also allow for circles, or whatever). The hotspots table
+    key (e.g. '.up' or '.select') is the hotspot name.
+    vp_rect argument is the dimensions of the viewport containing the
+    hotspots, which can be useful if dealing with offsets.]]--
+
     -- unused, but could be used to determine offsets
     local left, top, right, bottom = vp_rect:get_edges()
     local hotspots = {}
@@ -98,21 +110,27 @@ function setup_screen ()
 
     cont_hotspots = set_cont_hotspots(cont_viewport.rect)
 
+    -- Viewports container table
     viewports = { map_viewport, cont_viewport }
 
+    -- Build controls layer
     cont_layer = load_controller(cont_viewport)
     MOAIRenderMgr.pushRenderPass(cont_layer)
 
+    -- Set clear color (crashes certain setups?)
     MOAIGfxDevice.setClearColor(1, 0.41, 0.70, 1)
 
 end -- setup_screen()
 
 
 function build_map_table()
+    -- map table constructor function.
+    -- TODO: Change this to a class and module.
 
     map_table = {}
 
     function map_table:insert_tile(map_prop, i, j)
+        -- Method to insert an entry into the map table
         local tile = {}
 
         tile.name = map_prop.name
@@ -162,7 +180,8 @@ function build_map_table()
 end
 
 function load_controller(controls_viewport)
-
+    -- Create our controller layer with prop
+    -- TODO: Also set our hotpots here
     local ui = MOAIGfxQuad2D.new()
     ui:setTexture("images/ui/controller.png")
     ui:setRect(-256, -64, 256, 64)
@@ -244,7 +263,7 @@ function load_map(map_viewport)
             end
             map_prop:setLoc((j-0.5-scale_width/2), (scale_height/2-(i-0.5)))
             map_layer:insertProp(map_prop)
-            
+            -- Insert this map layer prop into our map_table:
             map_table:insert_tile(map_prop, i, j)
         end
     end
@@ -308,6 +327,9 @@ end -- calc_hit(attack, defend)
 
 
 function calc_damage(strength, defence)
+    --[[ Given strength and defence values, calculate the actual hit
+    damage, and return it. ]]--
+
     -- 20 % variability on strength & defence
     local str = strength + strength * (math.random()*2-1) * 0.2
     local def = defence + defence * (math.random()*2-1) * 0.2
@@ -325,6 +347,9 @@ end -- calc_damage(strength, defence)
 
 
 function attack(attacker, defender)
+    --[[ Attack function. Given an attacker and a defender, calculate
+    hit probably, then calculate damage, finally calculate new health.
+    Play appropriate sounds and return messages. ]]--
 
     if calc_hit(attacker.attribs.agility, defender.attribs.agility) then
         io.write(sh.firstToUpper(attacker.name).." hit! ")
@@ -346,6 +371,8 @@ function attack(attacker, defender)
 end -- attack(attacker, defender)
 
 
+-- MOVEMENT COMPONENTS --
+
 function seek_location(self, X, Y)
     --[[ A prop method for seeking an (X,Y) world unit location. ]]--
     local X_cur, Y_cur = self:getLoc()
@@ -363,7 +390,6 @@ function seek_location(self, X, Y)
     self.thread:run( thread_func )
 end -- seek_location(x, y)
 
-
 function rebound(self)
     --[[ Bounce backwards from current direction vector. ]]--
     local X_cur, Y_cur = self:getLoc()
@@ -372,19 +398,18 @@ function rebound(self)
     self:setLoc(X_new, Y_new)
 end -- rebound(self)
 
-
 function re_move(self)
-    --[[ Put into last known good location. ]]--
+    --[[ Move to last known good location. ]]--
     self:setLoc( self:get_last_loc() )
 end -- re_move(self)
 
-
 function get_last_loc(self)
+    --[[ Simply return last known location as an (X, Y) coord. ]]--
     return self.last_X, self.last_Y
 end -- get_last_loc()
 
-
 function set_last_loc(self)
+    --[[ Save current location as last known good location. ]]--
     self.last_X, self.last_Y = self:getLoc()
     return nil
 end -- set_last_loc(self)
@@ -426,6 +451,7 @@ function make_dude(i, j, name)
 
 
     function dude:move_cell(direction)
+        --[[ Move the character by a map tile, along the grid. ]]--
         local i, j = map_table:get_coords(dude:getLoc())
         if direction == 'up' then
             next_i, next_j = i - 1, j
@@ -451,9 +477,11 @@ function make_dude(i, j, name)
     end
 
     function dude:isMoving()
+        --[[ Return true if dude is moving. ]]--
         if self.move_action ~= nil and self.move_action:isBusy() then
             return true
         end
+        return false
     end
 
     function dude:stop()
@@ -537,7 +565,8 @@ function make_item(i, j, item_type)
 end -- function make_slime ()
 
 function setup_world ()
-    --[[ Set up our items and characters in the world ]]--
+    --[[ Set up our items, hero, monsters, etc, in the world.
+    TODO: This should be a part of the map making module. ]]--
     dude = make_dude(8, 9, 'Hero', 3)  -- Hero
 
     monsters = {
@@ -545,7 +574,6 @@ function setup_world ()
         , make_monster(3, 2, 'slime', 1.5)   -- Slime 2
         , make_monster(15, 7, 'slime', 2.4)    -- Slime 3
     }
-
     items = {
         make_item(4, 3, 'sword')
     }
@@ -577,9 +605,12 @@ function game_loop ()
                 monster:random_move()
             end
         end
-        
+        if key_down then
+            print("holding...")
+        end
         if MOAIInputMgr.device.mouseLeft:down () then
 
+            key_down = true
             local dest_x, dest_y  = MOAIInputMgr.device.pointer:getLoc()
             local dest_X, dest_Y = char_layer:wndToWorld(dest_x, dest_y)
 
@@ -599,6 +630,10 @@ function game_loop ()
                     print ("Controller: "..(hotspot or 'nil'))
                 end
             end
+        end
+        if MOAIInputMgr.device.mouseLeft:up() then
+            print("click off")
+            key_down = false
         end
         for i, monster in ipairs (monsters) do
             if collide_rect(monster, dude) then
@@ -656,6 +691,7 @@ end -- game_loop()
 
 
 function main()
+    --[[ Run the game ]]--
     game_over = false
     print("Setting up screen...")
     setup_screen ()
@@ -669,6 +705,5 @@ function main()
     mainThread = MOAICoroutine.new ()
     mainThread:run ( game_loop )
 end -- main()
-
 
 main() -- Run program
