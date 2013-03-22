@@ -27,15 +27,21 @@ function load_sounds(path)
     sound:load(path..'blip.wav')
     sound.position = 0.16
     sound.volume = 0.9
+    sound.replay = false
     sounds['blip'] = sound
     return sounds
 end -- load_sounds(path)
 
 function play_sound(name)
     --[[ Play file out of our sounds table. ]]--
-    sounds[name]:setLooping(false)
-    sounds[name]:setPosition(sounds[name].position or 0)
-    sounds[name]:setVolume(sounds[name].volume or 1)
-    sounds[name]:play()
+
+    if sounds[name].replay == false and sounds[name]:isPlaying() then
+        return nil
+    else
+        sounds[name]:setLooping(false)
+        sounds[name]:setPosition(sounds[name].position or 0)
+        sounds[name]:setVolume(sounds[name].volume or 1)
+        sounds[name]:play()
+    end
     return nil
 end -- play_sound(name)
