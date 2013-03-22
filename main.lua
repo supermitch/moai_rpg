@@ -297,8 +297,8 @@ function collide_rect(obj_a, obj_b)
     local a_x1, a_y1, a_x2, a_y2, a_x3, a_y3, a_x4, a_y4 = coords_rect(obj_a)
     local b_x1, b_y1, b_x2, b_y2, b_x3, b_y3, b_x4, b_y4 = coords_rect(obj_b)
     
-    if a_x3 >= b_x1 and a_x1 <= b_x3 then -- Check X collision first
-        if a_y3 >= b_y1 and a_y1 <= b_y3 then -- Check Y collision second
+    if a_x3 > b_x1 and a_x1 < b_x3 then -- Check X collision first
+        if a_y3 > b_y1 and a_y1 < b_y3 then -- Check Y collision second
             return true
         end 
     end
@@ -383,8 +383,10 @@ function seek_location(self, X, Y)
     self.dir_y = (Y - Y_cur) / distance -- Y unit vector component
 
     function thread_func()
+        self.is_moving = true
         self.move_action = self:seekLoc( X, Y, time, MOAIEaseType.LINEAR )
         MOAICoroutine.blockOnAction ( self.move_action )
+        self.is_moving = false
     end
     self.thread = MOAICoroutine.new()
     self.thread:run( thread_func )
@@ -449,7 +451,6 @@ function make_dude(i, j, name)
     dude.get_last_loc = get_last_loc
     dude.re_move = re_move
 
-
     function dude:move_cell(direction)
         --[[ Move the character by a map tile, along the grid. ]]--
         local i, j = map_table:get_coords(dude:getLoc())
@@ -469,9 +470,12 @@ function make_dude(i, j, name)
         end
         local tile = map_table[next_i][next_j]
         if tile.walkable then
-            dude:stop()
-            dude:move(tile:getLoc())
+            if not dude.is_moving then
+                dude:move(tile:getLoc())
+                dude.is_moving = true
+            end
         else
+            print('not walkable at: ['..next_i..']['..next_j..']')
             sm.play_sound('blip')
         end
     end
@@ -579,23 +583,92 @@ function setup_world ()
     }
 end -- setup_world()
 
+function track_pointer(x, y)
+    --[[ Mouse pointer callback. ]]--
+    mouseX, mouseY = x, y
+end
+
+function left_mouse(down)
+    --[[ Mouse left button callback. If click is down, set key_down
+    to hotspot name. If key is up, set key_down = '' ]]--
+
+    if down then
+        local x, y  = MOAIInputMgr.device.pointer:getLoc()
+        local X, Y = char_layer:wndToWorld(x, y)
+
+        local vp_name = pick_viewport(viewports, x, y)
+        if vp_name == 'map' then
+            if dude:isMoving() then
+                dude:stop()
+            end
+            dude:move(X, Y)
+        elseif vp_name == 'controller' then
+            hotspot = pick_hotspot(cont_hotspots, x, y)
+            if th.is_in(hotspot, {'up', 'down', 'left', 'right'}) then
+                key_down = hotspot
+                print('key_down: ', key_down)
+                if not dude.is_moving then
+                    dude:move_cell(key_down)
+                end
+            elseif hotspot == 'start' then
+                os.exit(0)
+            else
+                print ("Controller: "..(hotspot or 'nil'))
+            end
+        end
+    else
+        key_down = ''
+        print('key_down: ', key_down)
+    end
+    return key_down
+end
+
+function handle_keyboard(key, down)
+    --[[ Keyboard callback function. Sets key_down to appropriate direction,
+    for movement. Other stuff not implemented, other than os.exit(0)! ]]--
+
+    if down == true then
+        -- print("Key pressed: "..string.char(tostring(key)), key)
+    else
+        key_down = ''
+        return key_down
+    end
+    if key == 65 or key == 97 then      -- a (left)
+        key_down = 'left'
+    elseif key == 68 or key == 100 then -- d (right)
+        key_down = 'right'
+    elseif key == 73 or key == 105 then -- i (inventory)
+        print("View inventory")
+    elseif key == 80 or key == 112 then -- p (pause)
+        print("Pause")
+    elseif key == 81 or key == 113 then -- q (quit)
+        os.exit(0)
+    elseif key == 83 or key == 115 then -- s (down)
+        key_down = 'down'
+    elseif key == 87 or key == 119 then -- w (up)
+        key_down = 'up'
+    elseif key == 27 then               -- Esc (quit)
+        os.exit(0)
+    elseif key == 32 then               -- Space (attack)
+        print("Attack")
+    end
+    return key_down
+end
+
 
 function game_loop ()
     local frames = 0
 
     if MOAIInputMgr.device.keyboard then
-        print("Keyboard found.")
-        MOAIInputMgr.device.keyboard:setCallback (
-            function (key, down)
-                if down == true then
-                    print("Key pressed: "..string.char(tostring(key)))
-                end
-            end
-        )
+        MOAIInputMgr.device.keyboard:setCallback(handle_keyboard)
     else
-        print("No keyboard...")
+        print("No keyboard found.")
     end
 
+    MOAIInputMgr.device.pointer:setCallback(track_pointer)
+    MOAIInputMgr.device.mouseLeft:setCallback(left_mouse)
+
+    key_down = ''
     while not game_over do
         coroutine.yield ()
         frames = frames + 1
@@ -605,35 +678,8 @@ function game_loop ()
                 monster:random_move()
             end
         end
-        if key_down then
-            print("holding...")
-        end
-        if MOAIInputMgr.device.mouseLeft:down () then
-
-            key_down = true
-            local dest_x, dest_y  = MOAIInputMgr.device.pointer:getLoc()
-            local dest_X, dest_Y = char_layer:wndToWorld(dest_x, dest_y)
-
-            local vp_name = pick_viewport(viewports, dest_x, dest_y)
-            if vp_name == 'map' then
-                if dude:isMoving() then
-                    dude:stop()
-                end
-                dude:move(dest_X, dest_Y)
-            elseif vp_name == 'controller' then
-                hotspot = pick_hotspot(cont_hotspots, dest_x, dest_y)
-                if th.is_in(hotspot, {'up', 'down', 'left', 'right'}) then
-                    dude:move_cell(hotspot)
-                elseif hotspot == 'start' then
-                    os.exit(0)
-                else
-                    print ("Controller: "..(hotspot or 'nil'))
-                end
-            end
-        end
-        if MOAIInputMgr.device.mouseLeft:up() then
-            print("click off")
-            key_down = false
+        if th.is_in(key_down, {'up', 'down', 'left', 'right'}) then
+            dude:move_cell(key_down)
         end
         for i, monster in ipairs (monsters) do
             if collide_rect(monster, dude) then
@@ -669,21 +715,6 @@ function game_loop ()
                 break
             end
         end
-
-        for i, row in ipairs(map_table) do
-            for j, tile in ipairs(row) do
-                if not tile.walkable then
-                    if collide_rect(tile, dude) then
-                        if dude:isMoving() then
-                            sm.play_sound('blip')
-                            dude:stop()
-                            dude:re_move()
-                        end
-                        break
-                    end
-                end
-            end
-        end
         dude:set_last_loc()
     end -- while not gameOver
     os.exit(0)
@@ -699,9 +730,8 @@ function main()
     sm.setup_sound()
     print("Setting up world...")
     setup_world ()
-    print("done.")
+    print("done.\n Welcome to Ancestors.")
 
-    print("Welcome to Ancestors.")
     mainThread = MOAICoroutine.new ()
     mainThread:run ( game_loop )
 end -- main()
