@@ -24,15 +24,21 @@ To run the program:
 
 ### Movement ###
 
-* Click anywhere on the map to attempt to move to that location
+Keyboard:
 
-Alternatively:
+* Movement: **W** - up, **A** - left, **S** - down, **D** - right
+* **I** - Inventory (not implemented)
+* **Q** - Quit
+* **Esc** - Quit
+* **Spacebar** - Attack (not implemented)
 
-* Click the controller **d-pad** to move up, down, left or right
+On-screen controller:
+
+* **d-pad** to move up, down, left or right
+* **start** to quit
 
 ### Menus ###
 
-* Click controller **start** to quit
 
 ## Screenshot ##
 
