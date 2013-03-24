@@ -409,10 +409,30 @@ function make_monster(i, j, name)
     prop.set_last_loc = set_last_loc
 
     function prop:random_move()
-        local X_cur, Y_cur = self:getLoc()
-        local dX = self.attribs['move_distance'] * (math.random() * 2 - 1)
-        local dY = self.attribs['move_distance'] * (math.random() * 2 - 1)
-        self:move (X_cur + dX, Y_cur + dY)
+        local cur_i, cur_j = map:coords_to_idx(self:getLoc())
+        local path = {}
+        local moves_remaining = self.attribs.move_distance
+        while moves_remaining > 0 do
+            local dir = math.random(1,4)
+            di, dj = 0, 0
+            if dir == 1 then di = 1
+            elseif dir == 2 then di = -1
+            elseif dir == 3 then dj = 1
+            elseif dir == 4 then dj = -1
+            end
+            local next_i, next_j = (cur_i + di), (cur_j + dj)
+            if map.grid[next_i] ~= nil
+            and map.grid[next_i][next_j] ~= nil
+            and map.grid[next_i][next_j].walkable then
+                table.insert(path, {next_i, next_j})
+                moves_remaining = moves_remaining - 1
+                cur_i, cur_j = next_i, next_j
+            end
+        end
+        for i, entry in ipairs(path) do
+            X, Y = map:idx_to_coords(entry[1], entry[2])
+            self:move (X, Y)
+        end
     end -- prop:random_move()
 
     char_layer:insertProp(prop)
@@ -503,30 +523,37 @@ function handle_keyboard(key, down)
     --[[ Keyboard callback function. Sets key_down to appropriate direction,
     for movement. Other stuff not implemented, other than os.exit(0)! --]]
 
-    if down == true then
-        -- print("Key pressed: "..string.char(tostring(key)), key)
-    else
+    if not down then 
         key_down = ''
         return key_down
     end
+
     if key == 65 or key == 97 then      -- a (left)
         key_down = 'left'
     elseif key == 68 or key == 100 then -- d (right)
         key_down = 'right'
     elseif key == 73 or key == 105 then -- i (inventory)
         print("Inventory")
+        key_down = 'i'
     elseif key == 80 or key == 112 then -- p (pause)
         print("Pause")
+        key_down = 'p'
     elseif key == 81 or key == 113 then -- q (quit)
         os.exit(0)
+        key_down = 'q'
     elseif key == 83 or key == 115 then -- s (down)
         key_down = 'down'
     elseif key == 87 or key == 119 then -- w (up)
         key_down = 'up'
     elseif key == 27 then               -- Esc (quit)
         os.exit(0)
+        key_down = 'esc'
     elseif key == 32 then               -- Space (attack)
         print("Attack")
+        key_down = 'space'
+    else
+        print("Key pressed: "..string.char(tostring(key)), key)
+        key_down = ''
     end
     return key_down
 end
@@ -593,7 +620,6 @@ function game_loop ()
         end
         dude:set_last_loc()
     end -- while not gameOver
-    os.exit(0)
 end -- game_loop()
 
 
