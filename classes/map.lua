@@ -32,7 +32,7 @@ function Map:coords_to_idx(X, Y)
     local cur_min = math.huge
     for i, row in ipairs(self.grid) do
         for j, tile in ipairs(row) do
-            local dist = mh.distance(X, Y, tile:getLoc())
+            local dist = helpers.math.distance(X, Y, tile:getLoc())
             if dist < cur_min then
                 cur_min = dist
                 index_i = i

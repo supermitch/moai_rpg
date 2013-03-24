@@ -1,10 +1,14 @@
-mh = require 'lib/helpers/math_helper'      -- math helper module
-sh = require 'lib/helpers/string_helper'    -- strings helper module
-th = require 'lib/helpers/table_helper'     -- lua tables helper module
-sm = require 'lib/sound_mgr'                -- sound effects manager
+helpers = {}    -- Basic helper functions library
+helpers.math = require 'lib/helpers/math_helper'  -- math function
+helpers.string = require 'lib/helpers/string_helper' -- string function
+helpers.table = require 'lib/helpers/table_helper' -- table functions
+
+lib = {}
+lib.sounds = require 'lib/sound_mgr'    -- Sound effects / Music manager
+
 classes = {}
-rect = require 'classes/rect'                   -- Rectangle class
-classes.map = require 'classes/map'           -- Map class
+classes.rect = require 'classes/rect'   -- Rectangle class
+classes.map = require 'classes/map'     -- Map class
 
 function pick_viewport(viewports, x, y)
     --[[ Returns the name of the viewport under the given (x, y) position.
@@ -42,14 +46,14 @@ function set_cont_hotspots(vp_rect)
     local left, top, right, bottom = vp_rect:get_edges()
     local hotspots = {}
     -- left, top, right, bottom
-    local up = rect.Rectangle.new(77, 528, 110, 562)
-    local dn = rect.Rectangle.new(77, 594, 110, 626)
-    local lf = rect.Rectangle.new(45, 561, 77, 594)
-    local rt = rect.Rectangle.new(110, 562, 143, 594)
-    local selec = rect.Rectangle.new(180, 573, 242, 611)
-    local start = rect.Rectangle.new(241, 570, 308, 610)
-    local B = rect.Rectangle.new(338, 552, 396, 612)
-    local A = rect.Rectangle.new(405, 552, 462, 612)
+    local up = classes.rect.Rectangle.new(77, 528, 110, 562)
+    local dn = classes.rect.Rectangle.new(77, 594, 110, 626)
+    local lf = classes.rect.Rectangle.new(45, 561, 77, 594)
+    local rt = classes.rect.Rectangle.new(110, 562, 143, 594)
+    local selec = classes.rect.Rectangle.new(180, 573, 242, 611)
+    local start = classes.rect.Rectangle.new(241, 570, 308, 610)
+    local B = classes.rect.Rectangle.new(338, 552, 396, 612)
+    local A = classes.rect.Rectangle.new(405, 552, 462, 612)
 
     hotspots.up = up
     hotspots.down = dn
@@ -84,7 +88,7 @@ function setup_screen ()
     MOAISim.openWindow("Ancestors", screen_width, screen_height)
 
     -- Set up map viewport
-    local map_rect = rect.Rectangle.new(0, 0, screen_width, map_height)
+    local map_rect = classes.rect.Rectangle.new(0, 0, screen_width, map_height)
     map_viewport = MOAIViewport.new()
     map_viewport:setSize( map_rect:get_edges() )
     map_viewport:setScale(scale_width, scale_height)
@@ -102,7 +106,7 @@ function setup_screen ()
     MOAIRenderMgr.pushRenderPass(char_layer)
     
     -- Set up controls viewport
-    local cont_rect = rect.Rectangle.new(0, map_height, screen_width,
+    local cont_rect = classes.rect.Rectangle.new(0, map_height, screen_width,
                                    map_height + cont_height)
     cont_viewport = MOAIViewport.new()
     cont_viewport:setSize( cont_rect:get_edges() )
@@ -206,7 +210,7 @@ function calc_damage(strength, defence)
     -- Scale damage by % difference with defence
     local damage = str + str * (str - def) / def
     -- Up to 25 % bonus on damage
-    damage = mh.round(damage + damage * math.random() * 0.25, 2)
+    damage = helpers.math.round(damage + damage * math.random() * 0.25, 2)
     if damage > 0 then
         return damage
     else
@@ -221,20 +225,20 @@ function attack(attacker, defender)
     Play appropriate sounds and return messages. --]]
 
     if calc_hit(attacker.attribs.agility, defender.attribs.agility) then
-        io.write(sh.firstToUpper(attacker.name).." hit! ")
+        io.write(helpers.string.firstToUpper(attacker.name).." hit! ")
         local damage = calc_damage(attacker.attribs.strength,
                                    defender.attribs.defence)
         if damage then
-            sm.play_sound('clang')
-            print(sh.firstToUpper(defender.name).." lost "..damage.." health!")
+            lib.sounds.play_sound('clang')
+            print(helpers.string.firstToUpper(defender.name).." lost "..damage.." health!")
             defender.attribs.health = defender.attribs.health - damage
         else
-            sm.play_sound('clunk')
-            print(sh.firstToUpper(defender.name).."blocked!")
+            lib.sounds.play_sound('clunk')
+            print(helpers.string.firstToUpper(defender.name).."blocked!")
         end
     else
-        sm.play_sound('swish')
-        print(sh.firstToUpper(attacker.name).." missed!")
+        lib.sounds.play_sound('swish')
+        print(helpers.string.firstToUpper(attacker.name).." missed!")
     end
     return defender.attribs['health']
 end -- attack(attacker, defender)
@@ -245,7 +249,7 @@ end -- attack(attacker, defender)
 function seek_location(self, X, Y)
     --[[ A prop method for seeking an (X,Y) world unit location. --]]
     local X_cur, Y_cur = self:getLoc()
-    local distance = mh.distance(X, Y, X_cur, Y_cur)
+    local distance = helpers.math.distance(X, Y, X_cur, Y_cur)
     if distance <= 0 then return nil end
     local time = distance / self.attribs.speed
     self.dir_x = (X - X_cur) / distance -- X unit vector component
@@ -345,7 +349,7 @@ function make_dude(i, j, name)
             end
         else
             print('not walkable at: ['..next_i..']['..next_j..']')
-            sm.play_sound('blip')
+            lib.sounds.play_sound('blip')
         end
     end
 
@@ -473,7 +477,7 @@ function left_mouse(down)
             dude:move(X, Y) --]]
         elseif vp_name == 'controller' then
             hotspot = pick_hotspot(cont_hotspots, x, y)
-            if th.is_in(hotspot, {'up', 'down', 'left', 'right'}) then
+            if helpers.table.is_in(hotspot, {'up', 'down', 'left', 'right'}) then
                 key_down = hotspot
                 print('key_down: ', key_down)
                 if not dude.is_moving then
@@ -507,7 +511,7 @@ function handle_keyboard(key, down)
     elseif key == 68 or key == 100 then -- d (right)
         key_down = 'right'
     elseif key == 73 or key == 105 then -- i (inventory)
-        print("View inventory")
+        print("Inventory")
     elseif key == 80 or key == 112 then -- p (pause)
         print("Pause")
     elseif key == 81 or key == 113 then -- q (quit)
@@ -547,7 +551,7 @@ function game_loop ()
                 monster:random_move()
             end
         end
-        if th.is_in(key_down, {'up', 'down', 'left', 'right'}) then
+        if helpers.table.is_in(key_down, {'up', 'down', 'left', 'right'}) then
             dude:move_cell(key_down)
         end
         for i, monster in ipairs (monsters) do
@@ -563,13 +567,13 @@ function game_loop ()
                 if dude.attribs.health <= 0 then
                     print("You died! Game over.")
                     char_layer:removeProp(dude)
-                    sm.play_sound('kill')
+                    lib.sounds.play_sound('kill')
                     game_over = true
                     break
                 elseif monster.attribs.health <= 0 then
                     print('You killed the '..monster.name..'!')
                     char_layer:removeProp(monster)
-                    sm.play_sound('kill')
+                    lib.sounds.play_sound('kill')
                     table.remove(monsters, i)
                     break
                 end
@@ -580,7 +584,7 @@ function game_loop ()
                 print("You found a sword!")
                 char_layer:removeProp(item)
                 table.remove(items, i)
-                sm.play_sound('pickup_metal')
+                lib.sounds.play_sound('pickup_metal')
                 break
             end
         end
@@ -596,7 +600,7 @@ function main()
     print("Setting up screen...")
     setup_screen ()
     print("Loading sounds...")
-    sm.setup_sound()
+    lib.sounds.setup_sound()
     print("Setting up world...")
     setup_world ()
     print("done.\n Welcome to Ancestors.")
