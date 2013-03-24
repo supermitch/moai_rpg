@@ -56,25 +56,20 @@ function Map:get_prop(X, Y)
     return partition:propForPoint(X, Y, 0)
 end
 
+
+function read_json(file_name)
+    JSON = (loadfile 'lib/JSON.lua')()
+    local file = io.open(file_name, 'r')
+    local output = JSON:decode( file:read("*all") )
+    file:close()
+    return output
+end
+    
+
 function Map:load_level(map_viewport, level)
     -- Loads a level matrix into the map layer
 
-    level={{4,2,2,2,2,1,1,1,1,1,1,1,1,1,1,4}
-          ,{2,2,2,2,1,1,1,1,1,1,1,1,1,1,2,2}
-          ,{2,2,2,2,1,1,1,1,1,1,1,1,1,2,2,2}
-          ,{2,2,2,2,2,2,1,1,1,1,1,1,2,2,2,2}
-          ,{1,2,2,2,2,2,1,1,3,1,1,1,2,2,2,4}
-          ,{1,2,2,2,2,2,1,1,1,1,1,1,2,2,4,4}
-          ,{1,1,2,2,2,2,2,1,1,1,1,2,2,4,4,4}
-          ,{2,1,2,1,2,1,2,1,2,1,2,1,2,4,4,4}
-          ,{1,1,2,2,2,2,2,1,1,1,1,2,2,4,2,4}
-          ,{1,1,1,2,2,1,1,1,1,1,1,1,1,2,2,2}
-          ,{1,1,1,1,1,1,3,1,3,1,1,1,2,2,2,2}
-          ,{1,1,1,1,1,3,3,1,1,1,1,1,2,2,2,2}
-          ,{1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2}
-          ,{1,1,1,1,1,1,1,1,1,1,1,1,2,2,2,2}
-          ,{3,1,1,1,1,1,1,1,1,1,1,2,2,2,2,2}
-          ,{3,3,1,1,1,1,1,1,1,1,1,1,1,1,2,4}}
+    local map_array = read_json(level)
 
     self.layer = MOAILayer2D.new()
     self.layer:setViewport(map_viewport)
@@ -95,7 +90,7 @@ function Map:load_level(map_viewport, level)
     sand_rock:setTexture("images/maps/rock_2.png")
     sand_rock:setRect(-0.5, -0.5, 0.5, 0.5)
 
-    for i, row in pairs(level) do
+    for i, row in pairs(map_array) do
         if self.grid[i] == nil then -- If grid row doesn't exit
             self.grid[i] = {}       -- Init empty grid row
         end 

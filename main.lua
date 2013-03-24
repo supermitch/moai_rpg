@@ -10,6 +10,7 @@ classes = {}
 classes.rect = require 'classes/rect'   -- Rectangle class
 classes.map = require 'classes/map'     -- Map class
 
+
 function pick_viewport(viewports, x, y)
     --[[ Returns the name of the viewport under the given (x, y) position.
     viewports is a table of viewport objects, which must have a .rect
@@ -96,8 +97,8 @@ function setup_screen ()
     map_viewport.name = 'map'
 
     -- Build map layer
-    map = classes.map.Map.new('world')
-    map:load_level(map_viewport, nil)
+    map = classes.map.Map.new('World')
+    map:load_level(map_viewport, 'maps/world.json')
     MOAIRenderMgr.pushRenderPass(map.layer)
 
         -- Build character layer
@@ -230,7 +231,8 @@ function attack(attacker, defender)
                                    defender.attribs.defence)
         if damage then
             lib.sounds.play_sound('clang')
-            print(helpers.string.firstToUpper(defender.name).." lost "..damage.." health!")
+            print(helpers.string.firstToUpper(defender.name)..
+                  " lost "..damage.." health!")
             defender.attribs.health = defender.attribs.health - damage
         else
             lib.sounds.play_sound('clunk')
@@ -477,7 +479,8 @@ function left_mouse(down)
             dude:move(X, Y) --]]
         elseif vp_name == 'controller' then
             hotspot = pick_hotspot(cont_hotspots, x, y)
-            if helpers.table.is_in(hotspot, {'up', 'down', 'left', 'right'}) then
+            if helpers.table.is_in(hotspot,
+                {'up', 'down', 'left', 'right'}) then
                 key_down = hotspot
                 print('key_down: ', key_down)
                 if not dude.is_moving then
