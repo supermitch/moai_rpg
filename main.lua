@@ -247,86 +247,21 @@ function attack(attacker, defender)
 end -- attack(attacker, defender)
 
 
-function make_monster(i, j, name)
-
-    -- Slime character render --
-    local texture = MOAITexture.new()
-    texture:load( 'images/monsters/slime_1.png' )
-    local w, h = texture:getSize()
-    local sprite = MOAIGfxQuad2D.new()
-    sprite:setTexture( texture )
-    sprite:setRect(-w/32, -h/32, w/32, h/32) --i.e. (w/2) / (16 px/world unit)
-    local prop = MOAIProp2D.new()
-    prop:setDeck(sprite)
-    prop:setLoc(map:idx_to_coords(i, j))
-    prop.width = 1
-    prop.height = 1
-    dude.dir_x = 0
-    dude.dir_y = 0
-    prop.name = name
-    
-    local attrib_table = { speed = 2
-        , move_distance = 2
-        , health = 10
-        , strength = 2
-        , defence = 5
-        , agility = 1
-    }
-    prop.attribs = attrib_table
-
-    -- Prop Methods --
-    prop.move = seek_location
-    prop.rebound = rebound
-    prop.re_move = re_move
-    prop.set_last_loc = set_last_loc
-
-    function prop:random_move()
-        local cur_i, cur_j = map:coords_to_idx(self:getLoc())
-        local path = {}
-        local moves_remaining = self.attribs.move_distance
-        while moves_remaining > 0 do
-            local dir = math.random(1,4)
-            di, dj = 0, 0
-            if dir == 1 then di = 1
-            elseif dir == 2 then di = -1
-            elseif dir == 3 then dj = 1
-            elseif dir == 4 then dj = -1
-            end
-            local next_i, next_j = (cur_i + di), (cur_j + dj)
-            if map.grid[next_i] ~= nil
-            and map.grid[next_i][next_j] ~= nil
-            and map.grid[next_i][next_j].walkable then
-                table.insert(path, {next_i, next_j})
-                moves_remaining = moves_remaining - 1
-                cur_i, cur_j = next_i, next_j
-            end
-        end
-        for i, entry in ipairs(path) do
-            X, Y = map:idx_to_coords(entry[1], entry[2])
-            self:move (X, Y)
-        end
-    end -- prop:random_move()
-
-    return prop
-    
-end -- function make_slime ()
-
-
-function make_item(i, j, type)
+function make_item(i, j, kind)
 
     item = {}
     local texture = MOAITexture.new()
     texture:load( 'images/items/sword_1.png' )
-    local w, h = texture:getSize()
     local sprite = MOAIGfxQuad2D.new()
     sprite:setTexture( texture )
+    local w, h = texture:getSize()
     sprite:setRect(-w/32, -h/32, w/32, h/32) --i.e. (w/2) / (16 px/world unit)
 
     item.prop = MOAIProp2D.new()
     item.prop:setDeck(sprite)
     item.prop:setLoc(map:idx_to_coords(i, j))
-    item.type = item_type
 
+    item.kind = kind
     item.width = 1
     item.height = 1
 
@@ -340,20 +275,23 @@ function setup_world ()
     --dude = make_dude(8, 9, 'Hero', 3)  -- Hero
     --char_layer:insertProp(dude)
 
-    hero = classes.char.Character.new('Ross')
+    hero = classes.char.Character.new('Ross', 'hero')
     hero:load_gfx()
     hero:load_attribs()
     hero.prop:setLoc(map:idx_to_coords(8, 6))
     char_layer:insertProp(hero.prop)
 
-    monsters = {}
-    --[[
-        make_monster(5, 5, 'slime', 2)       -- Slime 1
-        , make_monster(3, 2, 'slime', 1.5)   -- Slime 2
-        , make_monster(15, 7, 'slime', 2.4)    -- Slime 3
+    monsters = {
+        classes.char.Character.new('slime1', 'slime'),
+        classes.char.Character.new('slime2', 'slime'),
+        classes.char.Character.new('slime3', 'slime')
     }--]]
     for k, entry in ipairs(monsters) do
-        char_layer:insertProp(entry)
+        entry:load_gfx()
+        entry:load_attribs()
+        entry.prop:setLoc(map:idx_to_coords( math.random(2,12),
+                                            math.random(2,17) ))
+        char_layer:insertProp(entry.prop)
     end
 
     items = {
@@ -488,7 +426,7 @@ function game_loop ()
                     break
                 elseif monster.attribs.health <= 0 then
                     print('You killed the '..monster.name..'!')
-                    char_layer:removeProp(monster)
+                    char_layer:removeProp(monster.prop)
                     lib.sounds.play_sound('kill')
                     table.remove(monsters, i)
                     break

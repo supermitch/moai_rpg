@@ -5,10 +5,11 @@ module(..., package.seeall)
 Character = {}
 Character.__index = Character
 
-function Character.new(name)
+function Character.new(name, kind)
     local character = {}                  -- instance
     setmetatable(character, Character)
     character.name = name
+    character.kind = kind
     return character
 end
 
@@ -20,7 +21,12 @@ end
 function Character:load_gfx()
     --[[ Load sprite into map ]]
     local texture = MOAITexture.new()
-    texture:load('images/chars/dude_1.png')
+    print(self.kind)
+    if self.kind == 'hero' then
+        texture:load('images/chars/dude_1.png')
+    elseif self.kind == 'slime' then
+        texture:load('images/monsters/slime_1.png')
+    end
     local sprite = MOAIGfxQuad2D.new()
     sprite:setTexture(texture)
     local w, h = texture:getSize()
@@ -35,12 +41,25 @@ function Character:load_attribs()
     --[[ Load attributes into self.attribs ]]
     -- TODO: Load from JSON
     local atr = {}
-    atr.speed = 3
-    atr.move_distance = 1
-    atr.health = 20
-    atr.strength = 5
-    atr.defence = 3
-    atr.agility = 3
+    if self.kind == 'hero' then
+        atr = {
+            speed = 3, 
+            move_distance = 1,
+            health = 20,
+            strength = 5,
+            defence = 3,
+            agility = 3
+        }
+    elseif self.kind == 'slime' then
+        atr = {
+            speed = 2,
+            move_distance = 2,
+            health = 10,
+            strength = 2,
+            defence = 5,
+            agility = 1
+        }
+    end
     self.attribs = atr
 end
 
@@ -133,3 +152,31 @@ function Character:stop()
         self.move_action:stop()
     end
 end
+
+function Character:random_move()
+    local cur_i, cur_j = map:coords_to_idx(self.prop:getLoc())
+    local path = {}
+    local moves_remaining = self.attribs.move_distance
+    while moves_remaining > 0 do
+        local dir = math.random(1,4)
+        di, dj = 0, 0
+        if dir == 1 then di = 1
+        elseif dir == 2 then di = -1
+        elseif dir == 3 then dj = 1
+        elseif dir == 4 then dj = -1
+        end
+        local next_i, next_j = (cur_i + di), (cur_j + dj)
+        if map.grid[next_i] ~= nil
+        and map.grid[next_i][next_j] ~= nil
+        and map.grid[next_i][next_j].walkable then
+            table.insert(path, {next_i, next_j})
+            moves_remaining = moves_remaining - 1
+            cur_i, cur_j = next_i, next_j
+        end
+    end
+    for i, entry in ipairs(path) do
+        X, Y = map:idx_to_coords(entry[1], entry[2])
+        self:seek_location (X, Y)
+    end
+end -- Character:random_move()
+
