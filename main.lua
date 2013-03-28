@@ -9,6 +9,7 @@ lib.sounds = require 'lib/sound_mgr'    -- Sound effects / Music manager
 classes = {}
 classes.rect = require 'classes/rect'   -- Rectangle class
 classes.map = require 'classes/map'     -- Map class
+classes.char = require 'classes/character'  -- Character class
 
 
 function pick_viewport(viewports, x, y)
@@ -153,7 +154,7 @@ function coords_rect(obj)
     --[[ Return coordinates as (x, y) for all 4 corners of a horizontally
     aligned rectangle. Objects needs a getLoc() method, plus width &
     height values. --]]
-    local X, Y = obj:getLoc()    -- object's center
+    local X, Y = obj.prop:getLoc()    -- object's center
     local x1 = X - obj.width / 2
     local x2 = X + obj.width / 2
     local x3 = x2
@@ -246,135 +247,6 @@ function attack(attacker, defender)
 end -- attack(attacker, defender)
 
 
--- MOVEMENT COMPONENTS --
-
-function seek_location(self, X, Y)
-    --[[ A prop method for seeking an (X,Y) world unit location. --]]
-    local X_cur, Y_cur = self:getLoc()
-    local distance = helpers.math.distance(X, Y, X_cur, Y_cur)
-    if distance <= 0 then return nil end
-    local time = distance / self.attribs.speed
-    self.dir_x = (X - X_cur) / distance -- X unit vector component
-    self.dir_y = (Y - Y_cur) / distance -- Y unit vector component
-
-    function thread_func()
-        self.is_moving = true
-        self.move_action = self:seekLoc( X, Y, time, MOAIEaseType.LINEAR )
-        MOAICoroutine.blockOnAction ( self.move_action )
-        self.is_moving = false
-    end
-    self.thread = MOAICoroutine.new()
-    self.thread:run( thread_func )
-end -- seek_location(x, y)
-
-function rebound(self)
-    --[[ Bounce backwards from current direction vector. --]]
-    local X_cur, Y_cur = self:getLoc()
-    local X_new = X_cur - self.dir_x * 0.5  -- rebound by 1/2 world units
-    local Y_new = Y_cur - self.dir_y * 0.5
-    self:setLoc(X_new, Y_new)
-end -- rebound(self)
-
-function re_move(self)
-    --[[ Move to last known good location. --]]
-    self:setLoc( self:get_last_loc() )
-end -- re_move(self)
-
-function get_last_loc(self)
-    --[[ Simply return last known location as an (X, Y) coord. --]]
-    return self.last_X, self.last_Y
-end -- get_last_loc()
-
-function set_last_loc(self)
-    --[[ Save current location as last known good location. --]]
-    self.last_X, self.last_Y = self:getLoc()
-    return nil
-end -- set_last_loc(self)
-
-
-function make_dude(i, j, name)
-    -- Main character render --
-    local texture = MOAITexture.new()
-    texture:load( 'images/chars/dude_1.png' )
-    local w, h = texture:getSize()
-    local sprite = MOAIGfxQuad2D.new()
-    sprite:setTexture( texture )
-    sprite:setRect(-w/32, -h/32, w/32, h/32) --i.e. (w/2) / (16 px/world unit)
-
-    dude = MOAIProp2D.new()
-    dude:setDeck(sprite)
-    dude:setLoc(map:idx_to_coords(i, j))
-    dude.width = 1
-    dude.height = 1
-    dude.dir_x = 0
-    dude.dir_y = 0
-    dude.name = name
-
-    local attrib_table = {}
-    attrib_table = { speed = 3
-        , move_distance = 0 
-        , health = 20
-        , strength = 5
-        , defence = 6
-        , agility = 3 }
-    dude.attribs = attrib_table
-
-    -- Prop Methods --
-    dude.move = seek_location -- old method using seekLoc()
-    dude.rebound = rebound
-    dude.set_last_loc = set_last_loc
-    dude.get_last_loc = get_last_loc
-    dude.re_move = re_move
-
-    function dude:move_cell(direction)
-        --[[ Move the character by a map tile, along the grid. --]]
-        local i, j = map:coords_to_idx(dude:getLoc())
-        if direction == 'up' then
-            next_i, next_j = i - 1, j
-        elseif direction == 'down' then
-            next_i, next_j = i + 1, j
-        elseif direction == 'left' then
-            next_i, next_j = i, j - 1
-        elseif direction == 'right' then
-            next_i, next_j = i, j + 1
-        else
-            print('Warning: bad direction ('..(direction or 'nil')..')')
-        end
-        if direction == nil then
-            return nil
-        end
-        local tile = map.grid[next_i][next_j]
-        if tile.walkable then
-            if not dude.is_moving then
-                dude:move(tile:getLoc())
-                dude.is_moving = true
-            end
-        else
-            print('not walkable at: ['..next_i..']['..next_j..']')
-            lib.sounds.play_sound('blip')
-        end
-    end
-
-    function dude:isMoving()
-        --[[ Return true if dude is moving. --]]
-        if self.move_action ~= nil and self.move_action:isBusy() then
-            return true
-        end
-        return false
-    end
-
-    function dude:stop()
-        if self:isMoving() then
-            self.move_action:stop()
-        end
-    end
-
-    char_layer:insertProp(dude)
-    return dude
-
-end -- function make_dude ()
-
-
 function make_monster(i, j, name)
 
     -- Slime character render --
@@ -435,14 +307,14 @@ function make_monster(i, j, name)
         end
     end -- prop:random_move()
 
-    char_layer:insertProp(prop)
     return prop
     
 end -- function make_slime ()
 
 
-function make_item(i, j, item_type)
+function make_item(i, j, type)
 
+    item = {}
     local texture = MOAITexture.new()
     texture:load( 'images/items/sword_1.png' )
     local w, h = texture:getSize()
@@ -450,32 +322,46 @@ function make_item(i, j, item_type)
     sprite:setTexture( texture )
     sprite:setRect(-w/32, -h/32, w/32, h/32) --i.e. (w/2) / (16 px/world unit)
 
-    local prop = MOAIProp2D.new()
-    prop:setDeck(sprite)
-    prop:setLoc(map:idx_to_coords(i, j))
-    prop.item_type = item_type
+    item.prop = MOAIProp2D.new()
+    item.prop:setDeck(sprite)
+    item.prop:setLoc(map:idx_to_coords(i, j))
+    item.type = item_type
 
-    prop.width = 1
-    prop.height = 1
-    char_layer:insertProp(prop)
+    item.width = 1
+    item.height = 1
 
-    return prop
+    return item
     
 end -- function make_slime ()
 
 function setup_world ()
     --[[ Set up our items, hero, monsters, etc, in the world.
     TODO: This should be a part of the map making module. --]]
-    dude = make_dude(8, 9, 'Hero', 3)  -- Hero
+    --dude = make_dude(8, 9, 'Hero', 3)  -- Hero
+    --char_layer:insertProp(dude)
 
-    monsters = {
+    hero = classes.char.Character.new('Ross')
+    hero:load_gfx()
+    hero:load_attribs()
+    hero.prop:setLoc(map:idx_to_coords(8, 6))
+    char_layer:insertProp(hero.prop)
+
+    monsters = {}
+    --[[
         make_monster(5, 5, 'slime', 2)       -- Slime 1
         , make_monster(3, 2, 'slime', 1.5)   -- Slime 2
         , make_monster(15, 7, 'slime', 2.4)    -- Slime 3
     }--]]
+    for k, entry in ipairs(monsters) do
+        char_layer:insertProp(entry)
+    end
+
     items = {
         make_item(4, 3, 'sword')
     }
+    for k, entry in ipairs(items) do
+        char_layer:insertProp(entry.prop)
+    end
 end -- setup_world()
 
 function track_pointer(x, y)
@@ -493,18 +379,18 @@ function left_mouse(down)
 
         local vp_name = pick_viewport(viewports, x, y)
         if vp_name == 'map' then
-            --[[if dude:isMoving() then
-                dude:stop()
+            --[[if hero:isMoving() then
+                hero:stop()
             end
-            dude:move(X, Y) --]]
+            hero:move(X, Y) --]]
         elseif vp_name == 'controller' then
             hotspot = pick_hotspot(cont_hotspots, x, y)
             if helpers.table.is_in(hotspot,
                 {'up', 'down', 'left', 'right'}) then
                 key_down = hotspot
                 print('key_down: ', key_down)
-                if not dude.is_moving then
-                    dude:move_cell(key_down)
+                if not hero.is_moving then
+                    hero:move_cell(key_down)
                 end
             elseif hotspot == 'start' then
                 os.exit(0)
@@ -582,21 +468,21 @@ function game_loop ()
             end
         end
         if helpers.table.is_in(key_down, {'up', 'down', 'left', 'right'}) then
-            dude:move_cell(key_down)
+            hero:move_cell(key_down)
         end
         for i, monster in ipairs (monsters) do
-            if collide_rect(monster, dude) then
-                if dude:isMoving() then
-                    dude.move_action:stop()
-                    attack(dude, monster)
+            if collide_rect(monster, hero) then
+                if hero:isMoving() then
+                    hero.move_action:stop()
+                    attack(hero, monster)
                     monster:rebound()
                 else
-                    attack(monster, dude)
-                    dude:rebound()
+                    attack(monster, hero)
+                    hero:rebound()
                 end
-                if dude.attribs.health <= 0 then
+                if hero.attribs.health <= 0 then
                     print("You died! Game over.")
-                    char_layer:removeProp(dude)
+                    char_layer:removeProp(hero.prop)
                     lib.sounds.play_sound('kill')
                     game_over = true
                     break
@@ -610,21 +496,24 @@ function game_loop ()
             end
         end 
         for i, item in ipairs(items) do
-            if collide_rect(item, dude) then
+            if collide_rect(item, hero) then
                 print("You found a sword!")
-                char_layer:removeProp(item)
+                char_layer:removeProp(item.prop)
                 table.remove(items, i)
                 lib.sounds.play_sound('pickup_metal')
                 break
             end
         end
-        dude:set_last_loc()
+        hero:set_last_loc()
     end -- while not gameOver
 end -- game_loop()
 
 
 function main()
     --[[ Run the game --]]
+    print('----------------------------')
+    print('-=        ANCESTORS       =-')
+    print('----------------------------')
     game_over = false
     print("Setting up screen...")
     setup_screen ()
