@@ -10,7 +10,6 @@ function Map.new(name)
     setmetatable(map, Map)
     map.name = name or 'default'
     map.grid = {}                   -- Init empty grid
-
     return map
 end
 
@@ -57,19 +56,10 @@ function Map:get_prop(X, Y)
 end
 
 
-function read_json(file_name)
-    JSON = (loadfile 'lib/JSON.lua')()
-    local file = io.open(file_name, 'r')
-    local output = JSON:decode( file:read("*all") )
-    file:close()
-    return output
-end
-    
-
 function Map:load_level(map_viewport, level)
     -- Loads a level matrix into the map layer
-
-    local map_array = read_json(level)
+    print (level)
+    local map_array = helpers.json.read_json_file(level)
 
     self.layer = MOAILayer2D.new()
     self.layer:setViewport(map_viewport)

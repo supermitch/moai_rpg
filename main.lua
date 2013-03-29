@@ -1,15 +1,17 @@
 helpers = {}    -- Basic helper functions library
-helpers.math = require 'lib/helpers/math_helper'  -- math function
-helpers.string = require 'lib/helpers/string_helper' -- string function
-helpers.table = require 'lib/helpers/table_helper' -- table functions
+helpers.math = require 'lib/helpers/math'  -- math function
+helpers.string = require 'lib/helpers/string' -- string function
+helpers.table = require 'lib/helpers/table' -- table functions
+helpers.json = require 'lib/helpers/json'           -- JSON tools
 
 lib = {}
 lib.sounds = require 'lib/sound_mgr'    -- Sound effects / Music manager
 
 classes = {}
-classes.rect = require 'classes/rect'   -- Rectangle class
-classes.map = require 'classes/map'     -- Map class
+classes.rect = require 'classes/rect'       -- Rectangle class
+classes.map = require 'classes/map'         -- Map class
 classes.char = require 'classes/character'  -- Character class
+classes.item = require 'classes/item'       -- Item/object class
 
 
 function pick_viewport(viewports, x, y)
@@ -247,57 +249,30 @@ function attack(attacker, defender)
 end -- attack(attacker, defender)
 
 
-function make_item(i, j, kind)
-
-    item = {}
-    local texture = MOAITexture.new()
-    texture:load( 'images/items/sword_1.png' )
-    local sprite = MOAIGfxQuad2D.new()
-    sprite:setTexture( texture )
-    local w, h = texture:getSize()
-    sprite:setRect(-w/32, -h/32, w/32, h/32) --i.e. (w/2) / (16 px/world unit)
-
-    item.prop = MOAIProp2D.new()
-    item.prop:setDeck(sprite)
-    item.prop:setLoc(map:idx_to_coords(i, j))
-
-    item.kind = kind
-    item.width = 1
-    item.height = 1
-
-    return item
-    
-end -- function make_slime ()
-
 function setup_world ()
     --[[ Set up our items, hero, monsters, etc, in the world.
     TODO: This should be a part of the map making module. --]]
-    --dude = make_dude(8, 9, 'Hero', 3)  -- Hero
-    --char_layer:insertProp(dude)
 
-    hero = classes.char.Character.new('Ross', 'hero')
-    hero:load_gfx()
-    hero:load_attribs()
-    hero.prop:setLoc(map:idx_to_coords(8, 6))
+    hero = classes.char.new('Ross', 'hero')
+    hero.prop:setLoc(map:idx_to_coords(8, 9))
     char_layer:insertProp(hero.prop)
 
     monsters = {
-        classes.char.Character.new('slime1', 'slime'),
-        classes.char.Character.new('slime2', 'slime'),
-        classes.char.Character.new('slime3', 'slime')
+        classes.char.new('slime1', 'slime'),
+        classes.char.new('slime2', 'slime'),
+        classes.char.new('slime3', 'slime')
     }--]]
     for k, entry in ipairs(monsters) do
-        entry:load_gfx()
-        entry:load_attribs()
         entry.prop:setLoc(map:idx_to_coords( math.random(2,12),
                                             math.random(2,17) ))
         char_layer:insertProp(entry.prop)
     end
 
     items = {
-        make_item(4, 3, 'sword')
+        classes.item.new('dull sword', 'sword')
     }
     for k, entry in ipairs(items) do
+        entry.prop:setLoc(map:idx_to_coords(4, 7))
         char_layer:insertProp(entry.prop)
     end
 end -- setup_world()

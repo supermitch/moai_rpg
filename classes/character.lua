@@ -5,7 +5,15 @@ module(..., package.seeall)
 Character = {}
 Character.__index = Character
 
-function Character.new(name, kind)
+function new(name, kind)
+    --[[ Instantiate our class and call loading methods ]]
+    local character = Character.instantiate(name, kind)
+    character:load_gfx()
+    character:load_attribs()
+    return character
+end
+
+function Character.instantiate(name, kind)
     local character = {}                  -- instance
     setmetatable(character, Character)
     character.name = name
