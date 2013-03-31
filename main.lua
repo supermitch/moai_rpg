@@ -10,6 +10,7 @@ lib.sounds = require 'lib/sound_mgr'    -- Sound effects / Music manager
 classes = {}
 classes.rect = require 'classes/rect'       -- Rectangle class
 classes.map = require 'classes/map'         -- Map class
+classes.objects = require 'classes/objects' -- Objects (set) class
 classes.char = require 'classes/character'  -- Character class
 classes.item = require 'classes/item'       -- Item/object class
 
@@ -103,12 +104,12 @@ function setup_screen ()
     map = classes.map.Map.new('World')
     map:load_level(map_viewport, 'maps/world.json')
     MOAIRenderMgr.pushRenderPass(map.layer)
+   
+    -- Build objects/entities layer
+    objects = classes.objects.Objects.new('World')
+    objects:load_level(map_viewport, 'maps/world.json')
+    MOAIRenderMgr.pushRenderPass(objects.layer)
 
-        -- Build character layer
-    char_layer = MOAILayer2D.new()
-    char_layer:setViewport(map_viewport)
-    MOAIRenderMgr.pushRenderPass(char_layer)
-    
     -- Set up controls viewport
     local cont_rect = classes.rect.Rectangle.new(0, map_height, screen_width,
                                    map_height + cont_height)
@@ -249,33 +250,6 @@ function attack(attacker, defender)
 end -- attack(attacker, defender)
 
 
-function setup_world ()
-    --[[ Set up our items, hero, monsters, etc, in the world.
-    TODO: This should be a part of the map making module. --]]
-
-    hero = classes.char.new('Ross', 'hero')
-    hero.prop:setLoc(map:idx_to_coords(8, 9))
-    char_layer:insertProp(hero.prop)
-
-    monsters = {
-        classes.char.new('slime1', 'slime'),
-        classes.char.new('slime2', 'slime'),
-        classes.char.new('slime3', 'slime')
-    }--]]
-    for k, entry in ipairs(monsters) do
-        entry.prop:setLoc(map:idx_to_coords( math.random(2,12),
-                                            math.random(2,17) ))
-        char_layer:insertProp(entry.prop)
-    end
-
-    items = {
-        classes.item.new('dull sword', 'sword')
-    }
-    for k, entry in ipairs(items) do
-        entry.prop:setLoc(map:idx_to_coords(4, 7))
-        char_layer:insertProp(entry.prop)
-    end
-end -- setup_world()
 
 function track_pointer(x, y)
     --[[ Mouse pointer callback. --]]
@@ -288,22 +262,22 @@ function left_mouse(down)
 
     if down then
         local x, y  = MOAIInputMgr.device.pointer:getLoc()
-        local X, Y = char_layer:wndToWorld(x, y)
+        local X, Y = objects.layer:wndToWorld(x, y)
 
         local vp_name = pick_viewport(viewports, x, y)
         if vp_name == 'map' then
             --[[if hero:isMoving() then
-                hero:stop()
+                objects.hero:stop()
             end
-            hero:move(X, Y) --]]
+            objects.hero:move(X, Y) --]]
         elseif vp_name == 'controller' then
             hotspot = pick_hotspot(cont_hotspots, x, y)
             if helpers.table.is_in(hotspot,
                 {'up', 'down', 'left', 'right'}) then
                 key_down = hotspot
                 print('key_down: ', key_down)
-                if not hero.is_moving then
-                    hero:move_cell(key_down)
+                if not objects.hero.is_moving then
+                    objects.hero:move_cell(key_down)
                 end
             elseif hotspot == 'start' then
                 os.exit(0)
@@ -376,48 +350,48 @@ function game_loop ()
         frames = frames + 1
         if frames == 45 then
             frames = 0
-            for i, monster in ipairs(monsters) do
+            for i, monster in ipairs(objects.monsters) do
                 monster:random_move()
             end
         end
         if helpers.table.is_in(key_down, {'up', 'down', 'left', 'right'}) then
-            hero:move_cell(key_down)
+            objects.hero:move_cell(key_down)
         end
-        for i, monster in ipairs (monsters) do
-            if collide_rect(monster, hero) then
-                if hero:isMoving() then
-                    hero.move_action:stop()
-                    attack(hero, monster)
+        for i, monster in ipairs (objects.monsters) do
+            if collide_rect(monster, objects.hero) then
+                if objects.hero:isMoving() then
+                    objects.hero.move_action:stop()
+                    attack(objects.hero, monster)
                     monster:rebound()
                 else
-                    attack(monster, hero)
-                    hero:rebound()
+                    attack(monster, objects.hero)
+                    objects.hero:rebound()
                 end
-                if hero.attribs.health <= 0 then
+                if objects.hero.attribs.health <= 0 then
                     print("You died! Game over.")
-                    char_layer:removeProp(hero.prop)
+                    objects.layer:removeProp(objects.hero.prop)
                     lib.sounds.play_sound('kill')
                     game_over = true
                     break
                 elseif monster.attribs.health <= 0 then
                     print('You killed the '..monster.name..'!')
-                    char_layer:removeProp(monster.prop)
+                    objects.layer:removeProp(monster.prop)
                     lib.sounds.play_sound('kill')
-                    table.remove(monsters, i)
+                    table.remove(objects.monsters, i)
                     break
                 end
             end
         end 
-        for i, item in ipairs(items) do
-            if collide_rect(item, hero) then
+        for i, item in ipairs(objects.items) do
+            if collide_rect(item, objects.hero) then
                 print("You found a sword!")
-                char_layer:removeProp(item.prop)
-                table.remove(items, i)
+                objects.layer:removeProp(item.prop)
+                table.remove(objects.items, i)
                 lib.sounds.play_sound('pickup_metal')
                 break
             end
         end
-        hero:set_last_loc()
+        objects.hero:set_last_loc()
     end -- while not gameOver
 end -- game_loop()
 
@@ -432,12 +406,11 @@ function main()
     setup_screen ()
     print("Loading sounds...")
     lib.sounds.setup_sound()
-    print("Setting up world...")
-    setup_world ()
     print("done.\n Welcome to Ancestors.")
 
     mainThread = MOAICoroutine.new ()
     mainThread:run ( game_loop )
+    
 end -- main()
 
 main() -- Run program

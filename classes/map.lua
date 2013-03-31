@@ -58,11 +58,15 @@ end
 
 function Map:load_level(map_viewport, level)
     -- Loads a level matrix into the map layer
-    print (level)
-    local map_array = helpers.json.read_json_file(level)
-
     self.layer = MOAILayer2D.new()
     self.layer:setViewport(map_viewport)
+    
+    local map_array = helpers.json.read_json_file(level)
+
+    self:load_terrain(map_array)    -- Terrain and appearance
+end
+
+function Map:load_terrain(map_array)
 
     local grass = MOAIGfxQuad2D.new()
     grass:setTexture("images/maps/grass_1.png")
