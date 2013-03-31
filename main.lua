@@ -39,7 +39,6 @@ function pick_hotspot(hotspots, x, y)
     return nil
 end
 
-
 function set_cont_hotspots(vp_rect)
     --[[ Generate a table of hotspots. Hotspots are simply Rectangles
     (should also allow for circles, or whatever). The hotspots table
@@ -91,6 +90,7 @@ function setup_screen ()
     print("W:"..scale_width.." H:"..scale_height)
 
     MOAISim.openWindow("Ancestors", screen_width, screen_height)
+    camera = MOAICamera2D.new()
 
     -- Set up map viewport
     local map_rect = classes.rect.Rectangle.new(0, 0, screen_width, map_height)
@@ -103,11 +103,13 @@ function setup_screen ()
     -- Build map layer
     map = classes.map.Map.new('World')
     map:load_level(map_viewport, 'maps/world.json')
+    map.layer:setCamera(camera)
     MOAIRenderMgr.pushRenderPass(map.layer)
    
     -- Build objects/entities layer
     objects = classes.objects.Objects.new('World')
     objects:load_level(map_viewport, 'maps/world.json')
+    objects.layer:setCamera(camera)
     MOAIRenderMgr.pushRenderPass(objects.layer)
 
     -- Set up controls viewport
@@ -130,7 +132,6 @@ function setup_screen ()
 
     -- Set clear color (crashes certain setups?)
     MOAIGfxDevice.setClearColor(1, 0.41, 0.70, 1)
-
 end -- setup_screen()
 
 
@@ -346,6 +347,7 @@ function game_loop ()
 
     key_down = ''
     while not game_over do
+        camera:seekLoc(objects.hero.prop:getLoc())
         coroutine.yield ()
         frames = frames + 1
         if frames == 45 then
@@ -356,6 +358,7 @@ function game_loop ()
         end
         if helpers.table.is_in(key_down, {'up', 'down', 'left', 'right'}) then
             objects.hero:move_cell(key_down)
+--            pan()
         end
         for i, monster in ipairs (objects.monsters) do
             if collide_rect(monster, objects.hero) then

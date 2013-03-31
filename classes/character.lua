@@ -85,8 +85,7 @@ function Character:seek_location(X, Y)
 
     function thread_func()
         self.is_moving = true
-        self.move_action = self.prop:seekLoc(X, Y, time,
-                                                  MOAIEaseType.LINEAR)
+        self.move_action = self.prop:seekLoc(X, Y, time, MOAIEaseType.LINEAR)
         MOAICoroutine.blockOnAction(self.move_action)
         self.is_moving = false
     end

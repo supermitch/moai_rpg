@@ -84,6 +84,10 @@ function Map:load_terrain(map_array)
     sand_rock:setTexture("images/maps/rock_2.png")
     sand_rock:setRect(-0.5, -0.5, 0.5, 0.5)
 
+    local ocean = MOAIGfxQuad2D.new()
+    ocean:setTexture("images/maps/ocean_1.png")
+    ocean:setRect(-0.5, -0.5, 0.5, 0.5)
+
     for i, row in pairs(map_array) do
         if self.grid[i] == nil then -- If grid row doesn't exit
             self.grid[i] = {}       -- Init empty grid row
@@ -104,6 +108,10 @@ function Map:load_terrain(map_array)
             elseif value == 4 then
                 prop:setDeck(sand_rock)
                 tile.name = 'sand_rock'
+                tile.walkable = false
+            elseif value == 5 then
+                prop:setDeck(ocean)
+                tile.name = 'ocean'
                 tile.walkable = false
             else
                 error("Invalid map value at ("..i..","..j..") = "..value)
