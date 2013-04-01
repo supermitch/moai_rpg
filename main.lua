@@ -358,7 +358,6 @@ function game_loop ()
         end
         if helpers.table.is_in(key_down, {'up', 'down', 'left', 'right'}) then
             objects.hero:move_cell(key_down)
---            pan()
         end
         for i, monster in ipairs (objects.monsters) do
             if collide_rect(monster, objects.hero) then
@@ -400,15 +399,19 @@ end -- game_loop()
 
 
 function main()
-    --[[ Run the game --]]
+    --[[ Run the game ]]--
     print('----------------------------')
     print('-=        ANCESTORS       =-')
     print('----------------------------')
+
     game_over = false
+
     print("Setting up screen...")
     setup_screen ()
+
     print("Loading sounds...")
     lib.sounds.setup_sound()
+
     print("done.\n Welcome to Ancestors.")
 
     mainThread = MOAICoroutine.new ()

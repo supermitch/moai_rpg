@@ -36,6 +36,7 @@ function play_sound(name)
     --[[ Play file out of our sounds table. ]]--
 
     if sounds[name].replay == false and sounds[name]:isPlaying() then
+        -- Don't play it again if replay is false
         return nil
     else
         sounds[name]:setLooping(false)

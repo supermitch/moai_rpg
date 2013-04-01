@@ -29,7 +29,6 @@ end
 function Character:load_gfx()
     --[[ Load sprite into map ]]
     local texture = MOAITexture.new()
-    print(self.kind)
     if self.kind == 'hero' then
         texture:load('images/chars/dude_1.png')
     elseif self.kind == 'slime' then

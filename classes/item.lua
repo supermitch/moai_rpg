@@ -29,7 +29,6 @@ end
 function Item:load_gfx()
     --[[ Load sprite into map ]]
     local texture = MOAITexture.new()
-    print(self.kind)
     if self.kind == 'sword' then
         texture:load('images/items/sword_1.png')
     elseif self.kind == 'key' then
