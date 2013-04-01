@@ -1,9 +1,9 @@
 module(..., package.seeall)
 
-function round(num, ndp)
-    --[[ Round num to ndp number of decimal points ]]--
-    local mult = 10^(NDP or 0)
-    return math.floor(NUM * mult + 0.5) / mult
+function round(number, decimals)
+    --[[ Round 'number' to 'decimals' number of decimal points ]]--
+    local multiplier = 10^(decimals or 0)
+    return math.floor(number * multiplier + 0.5) / multiplier
 end
 
 function distance(x1, y1, x2, y2)
