@@ -38,7 +38,7 @@ function Objects:load_objects (objects_array)
 
     print("loading objects..")
     self.hero = classes.char.new('Ross', 'hero')
-    self.hero.prop:setLoc(map:idx_to_coords(8, 9))
+    self.hero.prop:setLoc(map:idx_to_coords(30, 21))
     self.layer:insertProp(self.hero.prop)
 
     self.monsters = {
@@ -46,9 +46,10 @@ function Objects:load_objects (objects_array)
         classes.char.new('slime2', 'slime'),
         classes.char.new('slime3', 'slime')
     }
+    --self.monsters = {}
     for k, entry in ipairs(self.monsters) do
-        entry.prop:setLoc(map:idx_to_coords( math.random(2,12),
-                                            math.random(2,17) ))
+        entry.prop:setLoc(map:idx_to_coords( math.random(10,22),
+                                            math.random(10,22) ))
         self.layer:insertProp(entry.prop)
     end
 
@@ -56,7 +57,7 @@ function Objects:load_objects (objects_array)
         classes.item.new('dull sword', 'sword')
     }
     for k, entry in ipairs(self.items) do
-        entry.prop:setLoc(map:idx_to_coords(4, 7))
+        entry.prop:setLoc(map:idx_to_coords(16, 12))
         self.layer:insertProp(entry.prop)
     end
 end -- setup_world()
