@@ -172,7 +172,8 @@ end -- coords_rect(obj)
 
 
 function collide_rect(obj_a, obj_b)
-    --[[ Find out if two rectangles are intersecting. --]]
+    --[[ Find out if two rectangles are intersecting. Corner 1 is top-left,
+    then count clockwise. --]]
     local a_x1, a_y1, a_x2, a_y2, a_x3, a_y3, a_x4, a_y4 = coords_rect(obj_a)
     local b_x1, b_y1, b_x2, b_y2, b_x3, b_y3, b_x4, b_y4 = coords_rect(obj_b)
     
