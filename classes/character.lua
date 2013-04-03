@@ -33,6 +33,8 @@ function Character:load_gfx()
         texture:load('images/chars/dude_1.png')
     elseif self.kind == 'slime' then
         texture:load('images/monsters/slime_1.png')
+    elseif self.kind == 'spider' then
+        texture:load('images/monsters/spider_1.png')
     end
     local sprite = MOAIGfxQuad2D.new()
     sprite:setTexture(texture)
@@ -65,6 +67,15 @@ function Character:load_attribs()
             strength = 2,
             defence = 5,
             agility = 1
+        }
+    elseif self.kind == 'spider' then
+        atr = {
+            speed = 3,
+            move_distance = 3,
+            health = 5,
+            strength = 4,
+            defence = 3,
+            agility = 5
         }
     end
     self.attribs = atr

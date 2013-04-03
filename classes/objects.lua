@@ -44,7 +44,8 @@ function Objects:load_objects (objects_array)
     self.monsters = {
         classes.char.new('slime1', 'slime'),
         classes.char.new('slime2', 'slime'),
-        classes.char.new('slime3', 'slime')
+        classes.char.new('slime3', 'slime'),
+        classes.char.new('spider', 'spider'),
     }
     --self.monsters = {}
     for k, entry in ipairs(self.monsters) do
