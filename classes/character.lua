@@ -8,8 +8,8 @@ Character.__index = Character
 function new(name, kind)
     --[[ Instantiate our class and call loading methods ]]
     local character = Character.instantiate(name, kind)
-    character:load_gfx()
     character:load_attribs()
+    character:load_gfx()
     return character
 end
 

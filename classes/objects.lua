@@ -55,10 +55,10 @@ function Objects:load_objects (objects_array)
     end
 
     self.items = {
-        classes.item.new('dull sword', 'sword')
+        classes.item.new('dull sword', 'sword', 16, 12),
+        classes.item.new('gold key', 'key', 23, 23)
     }
     for k, entry in ipairs(self.items) do
-        entry.prop:setLoc(map:idx_to_coords(16, 12))
         self.layer:insertProp(entry.prop)
     end
 end -- setup_world()
