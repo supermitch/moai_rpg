@@ -1,0 +1,10 @@
+{
+    'kind': 'hero',
+    'texture': 'hero_1',
+    'agility': 5,
+    'defence': 3,
+    'health': 20,
+    'move_distance': 1,
+    'speed': 3,
+    'strength': 5,
+}

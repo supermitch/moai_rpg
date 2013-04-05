@@ -1,0 +1,10 @@
+{
+    'kind': 'slime',
+    'texture': 'slime_1',
+    'agility': 1,
+    'defence': 5,
+    'health': 10,
+    'move_distance': 2,
+    'speed': 2,
+    'strength': 2,
+}

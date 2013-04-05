@@ -1,0 +1,10 @@
+{
+    "damage": 5,
+    "intimidation": 6,
+    "kind": 'sword',
+    "maneuverability": 5,
+    'texture': 'sword_1',
+    "toughness": 2,
+    "quality": 2,
+    "weight": 5
+}
