@@ -7,3 +7,12 @@ function read_json_file(file_name)
     file:close()
     return output
 end
+
+function encode_json_file(object, file_name)
+    JSON = (loadfile 'lib/JSON.lua')()
+    local output = JSON:encode_pretty( object )
+    local file = io.open(file_name, 'w')
+    file:write(output)
+    file:close()
+    return output
+end
