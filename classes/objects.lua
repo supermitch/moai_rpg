@@ -27,7 +27,7 @@ function Objects:load_level(objects_viewport, level)
     self.layer = MOAILayer2D.new()
     self.layer:setViewport(objects_viewport)
     
-    local objects_array = helpers.json.read_json_file(level)
+    local objects_array = helpers.json.decode_file(level)
 
     self:load_objects(objects_array)    -- Objects and characters
 end
@@ -37,20 +37,17 @@ function Objects:load_objects (objects_array)
     TODO: This should be a part of the objects making module. --]]
 
     print("loading objects..")
-    self.hero = classes.char.new('Ross', 'hero')
-    self.hero.prop:setLoc(map:idx_to_coords(30, 21))
+    self.hero = classes.char.new('Ross', 'hero', 30, 21)
     self.layer:insertProp(self.hero.prop)
 
     self.monsters = {
-        classes.char.new('slime1', 'slime'),
-        classes.char.new('slime2', 'slime'),
-        classes.char.new('slime3', 'slime'),
-        classes.char.new('spider', 'spider'),
+        classes.char.new('slime1', 'slime', 10, 14),
+        classes.char.new('slime2', 'slime', 15, 10),
+        classes.char.new('slime3', 'slime', 20, 22),
+        classes.char.new('spider', 'spider', 28, 13),
     }
     --self.monsters = {}
     for k, entry in ipairs(self.monsters) do
-        entry.prop:setLoc(map:idx_to_coords( math.random(10,22),
-                                            math.random(10,22) ))
         self.layer:insertProp(entry.prop)
     end
 

@@ -61,7 +61,7 @@ function Map:load_level(map_viewport, level)
     self.layer = MOAILayer2D.new()
     self.layer:setViewport(map_viewport)
     
-    local map_array = helpers.json.read_json_file(level)
+    local map_array = helpers.json.decode_file(level)
 
     self:load_terrain(map_array)    -- Terrain and appearance
 end

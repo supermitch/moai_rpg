@@ -5,35 +5,34 @@ module(..., package.seeall)
 Item = {}
 Item.__index = Item
 
-function new(name, kind)
-    --[[ Instantiate our class and call loading methods ]]
-    item = Item.instance(name, kind)
-    item:load_gfx()
+function new(name, kind, i, j)
+    --[[ Get instance class and call loading methods ]]
+    local item = Item.instantiate(name, kind)
     item:load_attribs()
+    item:load_gfx()
+    item.prop:setLoc(map:idx_to_coords(i, j))
     return item
 end
 
-function Item.instance(name, kind)
-    local item = {}                  -- Build instance
+function Item.instantiate(name, kind)
+    --[[ Actual instance creation ]]
+    local item = {}
     setmetatable(item, Item)
     item.name = name
     item.kind = kind
     return item
 end
 
-function Item:get_name()
-    --[[ Return name ]]
-    return self.name
+function Item:load_attribs(kind)
+    --[[ Load attributes into self.attribs ]]
+    item_table = lib.assload.read('objects/items/', 'json')
+    self.attribs = item_table[self.kind]
 end
 
 function Item:load_gfx()
     --[[ Load sprite into map ]]
     local texture = MOAITexture.new()
-    if self.kind == 'sword' then
-        texture:load('images/items/sword_1.png')
-    elseif self.kind == 'key' then
-        texture:load('images/items/key_1.png')
-    end
+    texture:load('images/items/'..self.attribs.texture..'.png')
     local sprite = MOAIGfxQuad2D.new()
     sprite:setTexture(texture)
     local w, h = texture:getSize()
@@ -43,31 +42,3 @@ function Item:load_gfx()
     self.width, self.height = 1, 1
     self.dir_x, self.dir_y = 0, 0
 end
-
-function Item:load_attribs()
-    --[[ Load attributes into self.attribs ]]
-    -- TODO: Load from JSON
-    local atr = {}
-    if self.kind == 'sword' then
-        atr = {
-            damage = 5.0, 
-            weight = 5.0,
-            toughness = 2.0,
-            quality = 2.0,
-            maneuverability = 5.0,
-            intimidation = 6.0
-        }
-    elseif self.kind == 'key' then
-        atr = {
-            damage = 0.2, 
-            weight = 0.1,
-            toughness = 2,
-            quality = 2,
-            maneuverability = 10,
-            intimidation = 0.1
-        }
-    end
-    self.attribs = atr
-end
-
-

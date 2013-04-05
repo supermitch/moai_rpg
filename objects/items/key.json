@@ -1,10 +1,11 @@
 {
-    'kind': 'key',
-    'texture': 'key_1',
-    'damage': 0.2,
-    'intimidation': 0.1,
-    'maneuverability': 10,
-    'toughness': 2,
-    'quality': 2,
-    'weight': 0.1
+    "type": "items",
+    "kind": "key",
+    "texture": "key_1",
+    "damage": 0.2,
+    "intimidation": 0.1,
+    "maneuverability": 10,
+    "toughness": 2,
+    "quality": 2,
+    "weight": 0.1
 }

@@ -5,11 +5,12 @@ module(..., package.seeall)
 Character = {}
 Character.__index = Character
 
-function new(name, kind)
+function new(name, kind, i, j)
     --[[ Instantiate our class and call loading methods ]]
     local character = Character.instantiate(name, kind)
     character:load_attribs()
     character:load_gfx()
+    character.prop:setLoc(map:idx_to_coords(i, j))
     return character
 end
 
@@ -21,21 +22,11 @@ function Character.instantiate(name, kind)
     return character
 end
 
-function Character:get_name()
-    --[[ Return name ]]
-    return self.name
-end
-
 function Character:load_gfx()
     --[[ Load sprite into map ]]
     local texture = MOAITexture.new()
-    if self.kind == 'hero' then
-        texture:load('images/chars/dude_1.png')
-    elseif self.kind == 'slime' then
-        texture:load('images/monsters/slime_1.png')
-    elseif self.kind == 'spider' then
-        texture:load('images/monsters/spider_1.png')
-    end
+    texture:load('images/'..self.attribs.type..'/'..
+                 self.attribs.texture..'.png')
     local sprite = MOAIGfxQuad2D.new()
     sprite:setTexture(texture)
     local w, h = texture:getSize()
@@ -48,37 +39,10 @@ end
 
 function Character:load_attribs()
     --[[ Load attributes into self.attribs ]]
-    -- TODO: Load from JSON
-    local atr = {}
-    if self.kind == 'hero' then
-        atr = {
-            speed = 3, 
-            move_distance = 1,
-            health = 20,
-            strength = 5,
-            defence = 3,
-            agility = 3
-        }
-    elseif self.kind == 'slime' then
-        atr = {
-            speed = 2,
-            move_distance = 2,
-            health = 10,
-            strength = 2,
-            defence = 5,
-            agility = 1
-        }
-    elseif self.kind == 'spider' then
-        atr = {
-            speed = 3,
-            move_distance = 3,
-            health = 5,
-            strength = 4,
-            defence = 3,
-            agility = 5
-        }
-    end
-    self.attribs = atr
+    humans = lib.assload.read('objects/humans/', 'json')
+    monsters = lib.assload.read('objects/monsters/', 'json')
+    -- Try one, if nil, try the other. TODO: Bug if kinds are not unique!
+    self.attribs = humans[self.kind] or monsters[self.kind]
 end
 
 -- MOVEMENT COMPONENTS --
