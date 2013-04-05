@@ -5,7 +5,8 @@ helpers.table = require 'lib/helpers/table' -- table functions
 helpers.json = require 'lib/helpers/json'           -- JSON tools
 
 lib = {}
-lib.sounds = require 'lib/sound_mgr'    -- Sound effects / Music manager
+lib.sounds = require 'lib/sound_manager'    -- Sound effects / Music manager
+lib.assload = require 'lib/asset_loader'    -- Load external data files
 
 classes = {}
 classes.rect = require 'classes/rect'       -- Rectangle class
