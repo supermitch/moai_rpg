@@ -151,30 +151,8 @@ function setup_screen ()
     font:loadFromTTF('fonts/arial-rounded.ttf', charcodes, 8.5, 163)
     font:setDefaultSize(8.5, 163)
 
-function add_textbox(text, left, top, height, width, alignment)
-
-    local textbox = MOAITextBox.new()
-    textbox:setString( text )
-    textbox:setFont( font )
-    textbox:setRect( left, top, left+width, top-height )
-    textbox:setAlignment( alignment )
-    textbox:setYFlip( true )
-    --textbox:setColor(1, 0.2, 0, 1)
-    return textbox
-end
-
-function update_fps(fps)
-    fps_box:setString('fps: ' .. helpers.math.round(fps, 2) )
-end
-
-fps_box = add_textbox('FPS', -240, 400, 150, 150, MOAITextBox.LEFT_JUSTIFY )
-ui_layer:insertProp(fps_box)
-hit_box = add_textbox('+2', 10, 0, 30, 30, MOAITextBox.CENTER_JUSTIFY )
-hit_box:setLoc(1, 40)
-print('location', hit_box:getLoc())
-print('map:', map.layer:wndToWorld(hit_box:getLoc()))
-print('ui:', ui_layer:wndToWorld(hit_box:getLoc()))
-ui_layer:insertProp(hit_box)
+    fps_box = add_textbox('FPS', -240,400, 150,150, MOAITextBox.LEFT_JUSTIFY)
+    ui_layer:insertProp(fps_box)
 
 end -- setup_screen()
 
@@ -195,6 +173,22 @@ function load_controller(controls_viewport)
     control_layer:insertProp(ui_prop)
 
     return control_layer
+end
+
+function add_textbox(text, left, top, height, width, alignment)
+
+    local textbox = MOAITextBox.new()
+    textbox:setString( text )
+    textbox:setFont( font )
+    textbox:setRect( left, top, left+width, top-height )
+    textbox:setAlignment( alignment )
+    textbox:setYFlip( true )
+    --textbox:setColor(1, 0.2, 0, 1)
+    return textbox
+end
+
+function update_fps(fps)
+    fps_box:setString('fps: ' .. helpers.math.round(fps, 2) )
 end
 
 
@@ -377,48 +371,6 @@ function handle_keyboard(key, down)
     return key_down
 end
 
-function build_timer ()
-    --[[ Timer ]]
-    timeBox = MOAITextBox.new()
-    timeBox:setString("Time left: ")
-    timeBox:setFont(font)
-    timeBox:setTextSize(7.5, 72)
-    timeBox:setRect(-125, 50, 125, -50)
-    timeBox:setAlignment(MOAITextBox.CENTER_JUSTIFY)
-    --timeBox:setLoc(0, 0)
-    timeBox:setYFlip(true)
-    map.layer:insertProp(timeBox)
-    print(timeBox) 
-    --[[
-    timeBoxTime = MOAITextBox.new()
-    timeBoxTime:setFont(font)
-    timeBoxTime:setParent(timeBox)
-    timeBoxTime:setYFlip(true)
-    timeBoxTime:setRect(-50, 50, 50, -50)
-    timeBoxTime:setLoc(200, 0)
-    timerFrames = 900
-
-    fps_box = MOAITextBox.new()
-    fps_box:setFont(font)
-    fps_box:setRect(-125, 50, 125, -50)
-    fps_box:setLoc(-50, -150)
-    fps_box:setYFlip(true)
-    fps_box:setString("Time left: ")
-
-    map.layer:insertProp(timeBoxTime)
-    map.layer:insertProp(fps_box)
-    ]]
-end
-
-function timer ()
-    local secondsRemain = math.floor (timerFrames/60)
- 
-    --fps_box:setString(tostring(MOAISim:getPerformance()))
-    timerFrames = timerFrames - 1
-    --timeBoxTime:setString(tostring(secondsRemain))
-    return nil
-end
-
 function game_loop ()
     local frames = 0
 
@@ -434,9 +386,9 @@ function game_loop ()
     key_down = ''
     while not game_over do
         camera:seekLoc(objects.hero.prop:getLoc())
+        update_fps( MOAISim:getPerformance() )
         coroutine.yield ()
         frames = frames + 1
-        update_fps( MOAISim:getPerformance() )
         if frames == 180 then
             frames = 0
             for i, monster in ipairs(objects.monsters) do
