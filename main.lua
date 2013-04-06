@@ -115,6 +115,15 @@ function setup_screen ()
     objects.layer:setCamera(camera)
     MOAIRenderMgr.pushRenderPass(objects.layer)
 
+    -- Set up text/UI viewport
+    ui_vp = MOAIViewport.new()
+    ui_vp:setSize(map_rect:get_edges() )
+    ui_vp:setScale(screen_width, map_height)
+    -- Set up text/UI layer
+    ui_layer = MOAILayer2D.new()
+    ui_layer:setViewport(ui_vp)
+    MOAIRenderMgr.pushRenderPass(ui_layer)
+
     -- Set up controls viewport
     local cont_rect = classes.rect.Rectangle.new(0, map_height, screen_width,
                                    map_height + cont_height)
@@ -135,43 +144,37 @@ function setup_screen ()
 
     -- Set clear color (crashes certain setups?)
     MOAIGfxDevice.setClearColor(1, 0.41, 0.70, 1)
-    charcodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'..
-                      '0123456789 .,:;!?()&/-'
+
     font = MOAIFont.new()
-    font:loadFromTTF('fonts/arial-rounded.ttf', charcodes, 5, 72)
-    
-    --build_timer()
-    textbox = MOAITextBox.new()
-    textbox:setString("vvvvv")
-    textbox:setFont(font)
-    textbox:setTextSize(5, 163)
-    textbox:setRect(-25, 50, 25, -50)
-    textbox:setAlignment(MOAITextBox.CENTER_JUSTIFY)
-    textbox:setYFlip(true)
+    charcodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'..
+                '0123456789 .,:;!?<>()[]{}|&/-+_~`/'
+    font:loadFromTTF('fonts/arial-rounded.ttf', charcodes, 8.5, 163)
+    font:setDefaultSize(8.5, 163)
 
-    map.layer:insertProp(textbox)
-charcodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,:;!?()&/-'
-text = '1axxxx\n2bxxxxx\n3cxxxxx\n4dxxxxx\n5exxxxxx\n6fxxxxxxxxxx\n7gxxxxxxxxxxxx\n8hxxxx\n9ixxxxxx\n0jxxxxxxxx\n1kxxxxxxxxxxxx\n2lxxxxxxxxxx\n3mcccccccc\n4nbbbbbbbbb'
+function add_textbox(text, left, top, height, width, alignment)
 
-font = MOAIFont.new ()
-fsize = 2.0
-fres = 163
-font:loadFromTTF ( 'fonts/arial-rounded.ttf', charcodes, fsize, fres )
-
-function addTextbox ( alignment )
-
-	local textbox = MOAITextBox.new ()
-	textbox:setString ( text )
-	textbox:setFont ( font )
-	textbox:setTextSize ( fsize, fres )
-	textbox:setRect ( -5, -8, 5, 8 )
-	textbox:setAlignment ( alignment )
-	textbox:setYFlip ( false )
-    textbox:setLoc(10, -20)
-	map.layer:insertProp ( textbox )
+    local textbox = MOAITextBox.new()
+    textbox:setString( text )
+    textbox:setFont( font )
+    textbox:setRect( left, top, left+width, top-height )
+    textbox:setAlignment( alignment )
+    textbox:setYFlip( true )
+    --textbox:setColor(1, 0.2, 0, 1)
+    return textbox
 end
 
-addTextbox (MOAITextBox.CENTER_JUSTIFY )
+function update_fps(fps)
+    fps_box:setString('fps: ' .. helpers.math.round(fps, 2) )
+end
+
+fps_box = add_textbox('FPS', -240, 400, 150, 150, MOAITextBox.LEFT_JUSTIFY )
+ui_layer:insertProp(fps_box)
+hit_box = add_textbox('+2', 10, 0, 30, 30, MOAITextBox.CENTER_JUSTIFY )
+hit_box:setLoc(1, 40)
+print('location', hit_box:getLoc())
+print('map:', map.layer:wndToWorld(hit_box:getLoc()))
+print('ui:', ui_layer:wndToWorld(hit_box:getLoc()))
+ui_layer:insertProp(hit_box)
 
 end -- setup_screen()
 
@@ -433,7 +436,7 @@ function game_loop ()
         camera:seekLoc(objects.hero.prop:getLoc())
         coroutine.yield ()
         frames = frames + 1
-        --timer()
+        update_fps( MOAISim:getPerformance() )
         if frames == 180 then
             frames = 0
             for i, monster in ipairs(objects.monsters) do
