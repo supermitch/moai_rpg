@@ -91,6 +91,7 @@ function setup_screen ()
     print("W:"..scale_width.." H:"..scale_height)
 
     MOAISim.openWindow("Ancestors", screen_width, screen_height)
+    MOAISim.setStep (1 / 60)
     camera = MOAICamera2D.new()
 
     -- Set up map viewport
@@ -106,8 +107,9 @@ function setup_screen ()
     map:load_level(map_viewport, 'maps/world.json')
     map.layer:setCamera(camera)
     MOAIRenderMgr.pushRenderPass(map.layer)
-   
+  
     -- Build objects/entities layer
+    
     objects = classes.objects.Objects.new('World')
     objects:load_level(map_viewport, 'maps/world.json')
     objects.layer:setCamera(camera)
@@ -133,6 +135,44 @@ function setup_screen ()
 
     -- Set clear color (crashes certain setups?)
     MOAIGfxDevice.setClearColor(1, 0.41, 0.70, 1)
+    charcodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'..
+                      '0123456789 .,:;!?()&/-'
+    font = MOAIFont.new()
+    font:loadFromTTF('fonts/arial-rounded.ttf', charcodes, 5, 72)
+    
+    --build_timer()
+    textbox = MOAITextBox.new()
+    textbox:setString("vvvvv")
+    textbox:setFont(font)
+    textbox:setTextSize(5, 163)
+    textbox:setRect(-25, 50, 25, -50)
+    textbox:setAlignment(MOAITextBox.CENTER_JUSTIFY)
+    textbox:setYFlip(true)
+
+    map.layer:insertProp(textbox)
+charcodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789 .,:;!?()&/-'
+text = '1axxxx\n2bxxxxx\n3cxxxxx\n4dxxxxx\n5exxxxxx\n6fxxxxxxxxxx\n7gxxxxxxxxxxxx\n8hxxxx\n9ixxxxxx\n0jxxxxxxxx\n1kxxxxxxxxxxxx\n2lxxxxxxxxxx\n3mcccccccc\n4nbbbbbbbbb'
+
+font = MOAIFont.new ()
+fsize = 2.0
+fres = 163
+font:loadFromTTF ( 'fonts/arial-rounded.ttf', charcodes, fsize, fres )
+
+function addTextbox ( alignment )
+
+	local textbox = MOAITextBox.new ()
+	textbox:setString ( text )
+	textbox:setFont ( font )
+	textbox:setTextSize ( fsize, fres )
+	textbox:setRect ( -5, -8, 5, 8 )
+	textbox:setAlignment ( alignment )
+	textbox:setYFlip ( false )
+    textbox:setLoc(10, -20)
+	map.layer:insertProp ( textbox )
+end
+
+addTextbox (MOAITextBox.CENTER_JUSTIFY )
+
 end -- setup_screen()
 
 
@@ -334,6 +374,47 @@ function handle_keyboard(key, down)
     return key_down
 end
 
+function build_timer ()
+    --[[ Timer ]]
+    timeBox = MOAITextBox.new()
+    timeBox:setString("Time left: ")
+    timeBox:setFont(font)
+    timeBox:setTextSize(7.5, 72)
+    timeBox:setRect(-125, 50, 125, -50)
+    timeBox:setAlignment(MOAITextBox.CENTER_JUSTIFY)
+    --timeBox:setLoc(0, 0)
+    timeBox:setYFlip(true)
+    map.layer:insertProp(timeBox)
+    print(timeBox) 
+    --[[
+    timeBoxTime = MOAITextBox.new()
+    timeBoxTime:setFont(font)
+    timeBoxTime:setParent(timeBox)
+    timeBoxTime:setYFlip(true)
+    timeBoxTime:setRect(-50, 50, 50, -50)
+    timeBoxTime:setLoc(200, 0)
+    timerFrames = 900
+
+    fps_box = MOAITextBox.new()
+    fps_box:setFont(font)
+    fps_box:setRect(-125, 50, 125, -50)
+    fps_box:setLoc(-50, -150)
+    fps_box:setYFlip(true)
+    fps_box:setString("Time left: ")
+
+    map.layer:insertProp(timeBoxTime)
+    map.layer:insertProp(fps_box)
+    ]]
+end
+
+function timer ()
+    local secondsRemain = math.floor (timerFrames/60)
+ 
+    --fps_box:setString(tostring(MOAISim:getPerformance()))
+    timerFrames = timerFrames - 1
+    --timeBoxTime:setString(tostring(secondsRemain))
+    return nil
+end
 
 function game_loop ()
     local frames = 0
@@ -352,7 +433,8 @@ function game_loop ()
         camera:seekLoc(objects.hero.prop:getLoc())
         coroutine.yield ()
         frames = frames + 1
-        if frames == 45 then
+        --timer()
+        if frames == 180 then
             frames = 0
             for i, monster in ipairs(objects.monsters) do
                 monster:random_move()
