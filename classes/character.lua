@@ -62,6 +62,7 @@ function Character:seek_location(X, Y)
         self.move_action = self.prop:seekLoc(X, Y, time, MOAIEaseType.LINEAR)
         MOAICoroutine.blockOnAction(self.move_action)
         self.is_moving = false
+        self.last_move_time = MOAISim.getElapsedTime()
     end
     self.thread = MOAICoroutine.new()
     self.thread:run(thread_func)
@@ -135,11 +136,27 @@ function Character:stop()
 end
 
 function Character:random_move()
+    if self.path and # self.path > 0 then -- moves remain
+        if self:isMoving() then
+            -- do nothing
+        else
+            local move = table.remove(self.path, 1) -- pop last item
+            X, Y = map:idx_to_coords(move[1], move[2])
+            self:seek_location (X, Y)
+        end
+    else
+        if not self:isMoving() and not self:is_resting() then
+            self:plan_moves()   -- fill out path with new moves
+        end
+    end
+end
+    
+function Character:plan_moves()
     local cur_i, cur_j = map:coords_to_idx(self.prop:getLoc())
     local path = {}
     local moves_remaining = self.attribs.move_distance
-    local attempts = 0
-    while moves_remaining > 0 do
+    local attempts = 0  -- if character gets stuck
+    while moves_remaining > 0 and attempts < 20 do
         attempts = attempts + 1
         local dir = math.random(1,4)
         local di, dj = 0, 0
@@ -149,18 +166,23 @@ function Character:random_move()
         elseif dir == 4 then dj = -1
         end
         local next_i, next_j = (cur_i + di), (cur_j + dj)
-        if map.grid[next_i] ~= nil
-        and map.grid[next_i][next_j] ~= nil
+        if map.grid[next_i] ~= nil and map.grid[next_i][next_j] ~= nil
         and map.grid[next_i][next_j].walkable then
             table.insert(path, {next_i, next_j})
             moves_remaining = moves_remaining - 1
             cur_i, cur_j = next_i, next_j
         end
-        if attempts > 50 then break end -- Character is stuck, just chill.
     end
-    for i, entry in ipairs(path) do
-        X, Y = map:idx_to_coords(entry[1], entry[2])
-        self:seek_location (X, Y)
-    end
+    self.path = path
 end -- Character:random_move()
+
+function Character:is_resting()
+    --[[ Returns true if not enough time has passed since our last movement ]]
+    last_move = self.last_move_time or 0
+    if MOAISim.getElapsedTime() - last_move < self.attribs.rest then
+        return true -- resting
+    else
+        return false -- no longer resting
+    end
+end
 

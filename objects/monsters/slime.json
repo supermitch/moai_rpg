@@ -6,6 +6,7 @@
     "defence": 5,
     "health": 10,
     "move_distance": 2,
-    "speed": 2,
+    "rest": 0,
+    "speed": 1.5,
     "strength": 2
 }

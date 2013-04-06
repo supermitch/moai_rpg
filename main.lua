@@ -387,13 +387,14 @@ function game_loop ()
     while not game_over do
         camera:seekLoc(objects.hero.prop:getLoc())
         update_fps( MOAISim:getPerformance() )
+
         coroutine.yield ()
+        for i, monster in ipairs(objects.monsters) do
+            monster:random_move()
+        end
         frames = frames + 1
         if frames == 180 then
             frames = 0
-            for i, monster in ipairs(objects.monsters) do
-                monster:random_move()
-            end
         end
         if helpers.table.is_in(key_down, {'up', 'down', 'left', 'right'}) then
             objects.hero:move_cell(key_down)

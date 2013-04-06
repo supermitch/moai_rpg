@@ -5,7 +5,8 @@
     "agility": 5,
     "defence": 3,
     "health": 5,
-    "move_distance": 3,
-    "speed": 3,
+    "move_distance": 4,
+    "rest": 3,
+    "speed": 4,
     "strength": 4
 }
