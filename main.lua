@@ -148,8 +148,8 @@ function setup_screen ()
     font = MOAIFont.new()
     charcodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'..
                 '0123456789 .,:;!?<>()[]{}|&/-+_~`/'
-    font:loadFromTTF('fonts/arial-rounded.ttf', charcodes, 8.5, 163)
-    font:setDefaultSize(8.5, 163)
+    font:loadFromTTF('fonts/resource.ttf', charcodes, 20, 163)
+    font:setDefaultSize(20, 163)
 
     fps_box = add_textbox('FPS', -240,400, 150,150, MOAITextBox.LEFT_JUSTIFY)
     ui_layer:insertProp(fps_box)
