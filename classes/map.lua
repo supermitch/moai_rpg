@@ -18,6 +18,23 @@ function Map:get_name()
     return self.name
 end
 
+function Map:compass_cell_offset(direction)
+    --[[ Get the cell offset in the given compass direction. Applying the
+    cell offset to a current set of coords will give the next cell. ]]
+    if direction == 'n' then
+        return -1, 0
+    elseif direction == 'e' then
+        return 0, 1
+    elseif direction == 's' then
+        return 1, 0
+    elseif direction == 'w' then
+        return 0, -1
+    else
+        print("Bad compass direction: ", direction)
+        return nil
+    end
+end
+
 function Map:idx_to_coords(i, j)
     -- Return the position (in world coords) of the tile at indices [i][j]
     return self.grid[i][j]:getLoc()

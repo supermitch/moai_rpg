@@ -35,6 +35,7 @@ function Character:load_gfx()
     self.prop:setDeck(sprite)
     self.width, self.height = 1, 1
     self.dir_x, self.dir_y = 0, 0
+    self.orientation = 's'
 end
 
 function Character:load_attribs()
@@ -97,18 +98,21 @@ function Character:move_cell(direction)
     local i, j = map:coords_to_idx(self.prop:getLoc())
     if direction == 'up' then
         next_i, next_j = i - 1, j
+        self.orientation = 'n'
     elseif direction == 'down' then
         next_i, next_j = i + 1, j
+        self.orientation = 's'
     elseif direction == 'left' then
         next_i, next_j = i, j - 1
+        self.orientation = 'w'
     elseif direction == 'right' then
         next_i, next_j = i, j + 1
+        self.orientation = 'e'
     else
         print('Warning: bad direction ('..(direction or 'nil')..')')
     end
-    if direction == nil then
-        return nil
-    end
+    if direction == nil then return nil end
+    
     local tile = map.grid[next_i][next_j]
     if tile.walkable then
         if not self.is_moving then
@@ -185,4 +189,27 @@ function Character:is_resting()
         return false -- no longer resting
     end
 end
+
+function Character:talk()
+    --[[ Attempt to talk to whatever is facing your character, depending
+    on last move direction. ]]
+    local talking = false
+    local cur_i, cur_j = map:coords_to_idx(self.prop:getLoc())
+    local di, dj = map:compass_cell_offset(self.orientation)
+    local new_i, new_j = cur_i + di, cur_j + dj
+    for i, npc in ipairs(objects.humans) do
+        local npc_i, npc_j = map:coords_to_idx(npc.prop:getLoc())
+        if npc_i == new_i and npc_j == new_j then    -- is our neighbour!
+            print("Talking to ".. npc.name)
+            talking = true
+            break
+        end
+    end
+    if not talking then
+        print("(You're talking to yourself again...)")
+    end
+    return nil
+end
+
+
 

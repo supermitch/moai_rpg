@@ -1,0 +1,11 @@
+{
+    "type": "humans",
+    "kind": "kid",
+    "texture": "kid_1",
+    "agility": 2,
+    "defence": 2,
+    "health": 10,
+    "move_distance": 1,
+    "speed": 3,
+    "strength": 4
+}

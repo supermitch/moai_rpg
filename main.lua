@@ -208,7 +208,6 @@ function coords_rect(obj)
     return x1, y1, x2, y2, x3, y3, x4, y4
 end -- coords_rect(obj)
 
-
 function collide_rect(obj_a, obj_b)
     --[[ Find out if two rectangles are intersecting. Corner 1 is top-left,
     then count clockwise. --]]
@@ -356,6 +355,9 @@ function handle_keyboard(key, down)
         key_down = 'q'
     elseif key == 83 or key == 115 then -- s (down)
         key_down = 'down'
+    elseif key == 84 or key == 116 then -- t (talk)
+        key_down = 'talk'
+        objects.hero:talk()
     elseif key == 87 or key == 119 then -- w (up)
         key_down = 'up'
     elseif key == 27 then               -- Esc (quit)
@@ -393,7 +395,7 @@ function game_loop ()
             monster:random_move()
         end
         frames = frames + 1
-        if frames == 180 then
+        if frames == 180 then   -- FPS = 60 so 180 = 3 sec
             frames = 0
         end
         if helpers.table.is_in(key_down, {'up', 'down', 'left', 'right'}) then
@@ -433,6 +435,7 @@ function game_loop ()
                 break
             end
         end
+    
         objects.hero:set_last_loc()
     end -- while not gameOver
 end -- game_loop()
