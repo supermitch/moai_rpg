@@ -151,9 +151,10 @@ function setup_screen ()
     font:loadFromTTF('fonts/resource.ttf', charcodes, 20, 163)
     font:setDefaultSize(20, 163)
 
-    fps_box = add_textbox('FPS', -240,400, 150,150, MOAITextBox.LEFT_JUSTIFY)
+    fps_box = add_textbox('FPS', -240, 400, 150,150, MOAITextBox.LEFT_JUSTIFY)
     ui_layer:insertProp(fps_box)
 
+    talkbox = add_textbox('Talk', -240, -80, 50, 200, MOAITextBox.LEFT_JUSTIFY) 
 end -- setup_screen()
 
 
@@ -428,7 +429,7 @@ function game_loop ()
         end 
         for i, item in ipairs(objects.items) do
             if collide_rect(item, objects.hero) then
-                print("You found a sword!")
+                print('You found a '.. item.name ..'!')
                 objects.layer:removeProp(item.prop)
                 table.remove(objects.items, i)
                 lib.sounds.play_sound('pickup_metal')

@@ -202,6 +202,8 @@ function Character:talk()
         if npc_i == new_i and npc_j == new_j then    -- is our neighbour!
             print("Talking to ".. npc.name)
             talking = true
+            talkbox:setString("Hi there!")
+            ui_layer:insertProp(talkbox)
             break
         end
     end
