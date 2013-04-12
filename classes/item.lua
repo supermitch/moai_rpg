@@ -42,3 +42,8 @@ function Item:load_gfx()
     self.width, self.height = 1, 1
     self.dir_x, self.dir_y = 0, 0
 end
+
+function Item:get_cell()
+    --[[ Return object's current (i, j) map coordinates ]]
+    return map:coords_to_idx(self.prop:getLoc())
+end

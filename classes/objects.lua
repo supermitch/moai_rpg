@@ -9,10 +9,10 @@ function Objects.new(name)
     local objects = {}                  -- instance
     setmetatable(objects, Objects)
     objects.name = name or 'default'
-    objects.hero = {}                   -- Init empty grid
+    objects.items = {}
     objects.npcs = {}
     objects.monsters= {}
-    objects.items = {}
+    objects.hero = {}                   -- Init empty grid
     return objects
 end
 
@@ -37,8 +37,14 @@ function Objects:load_objects (objects_array)
     TODO: This should be a part of the objects making module. --]]
 
     print("loading objects..")
-    self.hero = classes.char.new('Ross', 'hero', 30, 21)
-    self.layer:insertProp(self.hero.prop)
+
+    self.items = {
+        classes.item.new('dull sword', 'sword', 16, 12),
+        classes.item.new('gold key', 'key', 23, 23)
+    }
+    for k, entry in ipairs(self.items) do
+        self.layer:insertProp(entry.prop)
+    end
 
     self.humans = {
         classes.char.new('fat kid', 'kid', 30, 19)
@@ -58,11 +64,8 @@ function Objects:load_objects (objects_array)
         self.layer:insertProp(entry.prop)
     end
 
-    self.items = {
-        classes.item.new('dull sword', 'sword', 16, 12),
-        classes.item.new('gold key', 'key', 23, 23)
-    }
-    for k, entry in ipairs(self.items) do
-        self.layer:insertProp(entry.prop)
-    end
+    self.hero = classes.char.new('Ross', 'hero', 30, 21)
+    self.layer:insertProp(self.hero.prop)
+
+
 end -- setup_world()

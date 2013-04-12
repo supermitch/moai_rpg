@@ -93,8 +93,13 @@ function Character:set_last_loc()
     return nil
 end -- set_last_loc(self)
 
+function Character:get_cell()
+    --[[ Return objects's current (i, j) map coordinates ]]
+    return map:coords_to_idx(self.prop:getLoc())
+end
+
 function Character:move_cell(direction)
-    --[[ Move the character by a map tile, along the grid. --]]
+    --[[ Move the character by a map tile, along the grid. ]]
     local i, j = map:coords_to_idx(self.prop:getLoc())
     if direction == 'up' then
         next_i, next_j = i - 1, j

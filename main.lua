@@ -428,7 +428,7 @@ function game_loop ()
             end
         end 
         for i, item in ipairs(objects.items) do
-            if collide_rect(item, objects.hero) then
+            if objects.hero:get_cell() == item:get_cell() then
                 print('You found a '.. item.name ..'!')
                 objects.layer:removeProp(item.prop)
                 table.remove(objects.items, i)
