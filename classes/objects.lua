@@ -47,16 +47,16 @@ function Objects:load_objects (objects_array)
     end
 
     self.humans = {
-        classes.char.new('fat kid', 'kid', 30, 19)
+        classes.char.new('strange kid', 'kid', 30, 19)
     }
     for k, entry in ipairs(self.humans) do
         self.layer:insertProp(entry.prop)
     end
 
     self.monsters = {
-        classes.char.new('slime1', 'slime', 10, 14),
-        classes.char.new('slime2', 'slime', 15, 10),
-        classes.char.new('slime3', 'slime', 20, 22),
+        classes.char.new('slime', 'slime', 10, 14),
+        classes.char.new('slime', 'slime', 15, 10),
+        classes.char.new('slime', 'slime', 20, 22),
         classes.char.new('spider', 'spider', 28, 13),
     }
     --self.monsters = {}

@@ -11,6 +11,7 @@ function new(name, kind, i, j)
     item:load_attribs()
     item:load_gfx()
     item.prop:setLoc(map:idx_to_coords(i, j))
+    item.i, item.j = i, j
     return item
 end
 

@@ -392,20 +392,27 @@ function game_loop ()
         update_fps( MOAISim:getPerformance() )
 
         coroutine.yield ()
-        for i, monster in ipairs(objects.monsters) do
-            monster:random_move()
+
+        for i, npc in ipairs(objects.humans) do
+            npc:random_move()
+            npc:update()
         end
+
         frames = frames + 1
         if frames == 180 then   -- FPS = 60 so 180 = 3 sec
-            frames = 0
+            frames = 0  -- reset
         end
-        if helpers.table.is_in(key_down, {'up', 'down', 'left', 'right'}) then
-            objects.hero:move_cell(key_down)
+
+        if helpers.table.is_in(key_down, {'up', 'right', 'down', 'left'}) then
+            local direction = {up='n', right='e', down='s', left='w'}
+            objects.hero:cell_move(direction[key_down])
         end
+
         for i, monster in ipairs (objects.monsters) do
+
             if collide_rect(monster, objects.hero) then
-                if objects.hero:isMoving() then
-                    objects.hero.move_action:stop()
+                if objects.hero:is_moving() then
+                    objects.hero:stop()
                     attack(objects.hero, monster)
                     monster:rebound()
                 else
@@ -419,16 +426,19 @@ function game_loop ()
                     game_over = true
                     break
                 elseif monster.attribs.health <= 0 then
-                    print('You killed the '..monster.name..'!')
+                    print('You killed the '.. monster.name ..'!')
                     objects.layer:removeProp(monster.prop)
                     lib.sounds.play_sound('kill')
                     table.remove(objects.monsters, i)
                     break
                 end
             end
-        end 
+            monster:random_move()
+            monster:update()
+        end
+
         for i, item in ipairs(objects.items) do
-            if objects.hero:get_cell() == item:get_cell() then
+            if item.i == objects.hero.i and item.j == objects.hero.j then
                 print('You found a '.. item.name ..'!')
                 objects.layer:removeProp(item.prop)
                 table.remove(objects.items, i)
@@ -436,7 +446,8 @@ function game_loop ()
                 break
             end
         end
-    
+   
+        objects.hero:update()
         objects.hero:set_last_loc()
     end -- while not gameOver
 end -- game_loop()
