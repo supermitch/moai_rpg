@@ -69,6 +69,26 @@ function Character:update_position()
     self.i, self.j = self:get_cell()
 end
 
+function Character:is_moving()
+    --[[ Return true if object has velocity. ]]
+    if self.v_x ~= 0 or self.v_y ~= 0 then
+        return true
+    else
+        return false
+    end
+end
+
+function Character:check_destination()
+    --[[ A prop method for seeking an (X, Y) world unit location. --]]
+    local X, Y = self.prop:getLoc() -- world coords
+    if (self.v_y > 0 and Y >= self.destination.y) or
+       (self.v_x > 0 and X >= self.destination.x) or
+       (self.v_y < 0 and Y <= self.destination.y) or
+       (self.v_x < 0 and X <= self.destination.x) then
+        self:stop()
+        self.last_move_time = MOAISim.getElapsedTime()
+    end
+end -- check_destination()
 
 function Character:update()
     --[[ We'd like to call update once per frame. ]]
@@ -83,32 +103,6 @@ function Character:update()
     self:update_position()
 end
 
-function Character:check_destination()
-    --[[ A prop method for seeking an (X, Y) world unit location. --]]
-    local X, Y = self.prop:getLoc() -- world coords
-    if self.v_y > 0 and Y >= self.destination.y then
-        self:stop()
-        self.last_move_time = MOAISim.getElapsedTime()
-    elseif self.v_x > 0 and X >= self.destination.x then
-        self:stop()
-        self.last_move_time = MOAISim.getElapsedTime()
-    elseif self.v_y < 0 and Y <= self.destination.y then
-        self:stop()
-        self.last_move_time = MOAISim.getElapsedTime()
-    elseif self.v_x < 0 and X <= self.destination.x then
-        self:stop()
-        self.last_move_time = MOAISim.getElapsedTime()
-    end
-end -- check_destination()
-
-function Character:is_moving()
-    --[[ Return true if object has velocity. ]]
-    if self.v_x ~= 0 or self.v_y ~= 0 then
-        return true
-    else
-        return false
-    end
-end
 
 function Character:stop()
     --[[ Shortcut, sets object's velocity to zero. ]]
@@ -169,8 +163,7 @@ end
 
 function Character:random_move()
     --[[ Tries to add a random neighbouring cell to the move path.
-    Character must have moves remaining in order to add a move to the
-    path. ]]
+    You need to have moves available in order to add a new one. ]]
     if self.moves_remaining <= 0 or self:is_moving() then return false end
 
     local i, j = self:get_cell()
@@ -192,7 +185,7 @@ function Character:random_move()
 end
 
 function Character:move()
-    --[[ Perform the next move in our path list ]]
+    --[[ Perform the next move in our path list. ]]
     if self:is_moving() then return nil end
     if self.path and # self.path > 0 then -- Some moves remain
         local move = table.remove(self.path, 1) -- pop last path item
@@ -206,7 +199,7 @@ end
     
 function Character:rest()
     --[[ Returns true if not enough time has passed since our last movement ]]
-    if self.attribs.rest == nil then
+    if self.attribs.rest == nil or self.attribs.rest == 0 then
         self.moves_remaining = self.attribs.move_distance
         return false
     end
@@ -218,9 +211,6 @@ function Character:rest()
         return false    -- refreshed!
     end
 end
-
-
-
 
 
 function Character:talk()
