@@ -37,29 +37,7 @@ function Character:load_gfx()
     self.width, self.height = 1, 1
     self.v_x, self.v_y = 0, 0
     self.orientation = 'n'
-end
-
-function Character:set_speed(direction)
-    if direction == 'n' then
-        self.v_x, self.v_y = 0, self.attribs.speed
-    elseif direction == 'e' then
-        self.v_x, self.v_y = self.attribs.speed, 0
-    elseif direction == 's' then
-        self.v_x, self.v_y = 0, -self.attribs.speed
-    elseif direction == 'w' then
-        self.v_x, self.v_y = -self.attribs.speed, 0
-    else
-        self.v_x, self.v_y = 0, 0
-    end
-    return self.v_x, self.v_y
-end
-
-function Character:move()
-    --[[ Move the prop according to speed attribute ]]
-    cur_x, cur_y = self.prop:getLoc()
-    new_x, new_y = cur_x + self.v_x/60, cur_y + self.v_y/60
-    self.prop:setLoc(new_x, new_y)
-    self.i, self.j = self:get_cell()
+    self.path = {}
 end
 
 function Character:load_attribs()
@@ -68,17 +46,41 @@ function Character:load_attribs()
     monsters = lib.assload.read('objects/monsters/', 'json')
     -- Try one, if nil, try the other. TODO: Bug if kinds are not unique!
     self.attribs = humans[self.kind] or monsters[self.kind]
+    self.moves_remaining = self.attribs.move_distance or 1
 end
 
 -- MOVEMENT COMPONENTS --
 -- TODO: Move outside!
+
+function Character:set_speed(dir)
+    --[[ Set x and y speeds according to compass direction arg. ]]
+    local spd = self.attribs.speed
+    local speeds = { n={0,spd}, e={spd,0}, s={0,-spd}, w={-spd,0} }
+
+    self.v_x = speeds[dir][1] or 0
+    self.v_y = speeds[dir][2] or 0
+end
+
+function Character:update_position()
+    --[[ Move the prop according to speed attribute. ]]
+    cur_x, cur_y = self.prop:getLoc()
+    new_x, new_y = cur_x + self.v_x/60, cur_y + self.v_y/60
+    self.prop:setLoc(new_x, new_y)
+    self.i, self.j = self:get_cell()
+end
+
 
 function Character:update()
     --[[ We'd like to call update once per frame. ]]
     if self:is_moving() then
         self:check_destination()
     end
-    self:move()
+    if self.moves_remaining <= 0 then
+        self:rest()
+    else
+        self:move()
+    end
+    self:update_position()
 end
 
 function Character:check_destination()
@@ -86,14 +88,32 @@ function Character:check_destination()
     local X, Y = self.prop:getLoc() -- world coords
     if self.v_y > 0 and Y >= self.destination.y then
         self:stop()
+        self.last_move_time = MOAISim.getElapsedTime()
     elseif self.v_x > 0 and X >= self.destination.x then
         self:stop()
+        self.last_move_time = MOAISim.getElapsedTime()
     elseif self.v_y < 0 and Y <= self.destination.y then
         self:stop()
+        self.last_move_time = MOAISim.getElapsedTime()
     elseif self.v_x < 0 and X <= self.destination.x then
         self:stop()
+        self.last_move_time = MOAISim.getElapsedTime()
     end
 end -- check_destination()
+
+function Character:is_moving()
+    --[[ Return true if object has velocity. ]]
+    if self.v_x ~= 0 or self.v_y ~= 0 then
+        return true
+    else
+        return false
+    end
+end
+
+function Character:stop()
+    --[[ Shortcut, sets object's velocity to zero. ]]
+    self.v_x, self.v_y = 0, 0
+end
 
 function Character:rebound()
     --[[ Bounce backwards from current direction vector. --]]
@@ -125,104 +145,83 @@ function Character:get_cell()
 end
 
 function Character:cell_move(direction)
-    --[[ Move the character by a map tile, along the grid. ]]
+    --[[ Add the cell in the given direction to the path. ]]
+    if self.moves_remaining <= 0 or self:is_moving() then return false end
+
+    local delta = { n={-1,0}, e={0,1}, s={1,0}, w={0,-1} } 
     local i, j = self:get_cell() 
-    local next_i, next_j = i, j
-    if direction == 'n' then
-        next_i = i - 1
-    elseif direction == 's' then
-        next_i = i + 1
-    elseif direction == 'w' then
-        next_j = j - 1
-    elseif direction == 'e' then
-        next_j = j + 1
-    else
-        direction = nil
-    end
-    if direction ~= nil then self.orientation = direction end
+    local next_i = i + (delta[direction][1] or 0)
+    local next_j = j + (delta[direction][2] or 0)
 
-    local tile = map.grid[next_i][next_j]
-    if tile.walkable then
-        if not self:is_moving() then
-            local dest_x, dest_y = map:idx_to_coords(next_i, next_j)
-            self.destination = { x=dest_x, y=dest_y }
-            self:set_speed(self.orientation)
+    if map.grid[next_i] ~= nil and map.grid[next_i][next_j] ~= nil then
+        if map.grid[next_i][next_j].walkable then
+            self.path = { { next_i, next_j, direction } }
+            return true
+        else
+            if self.kind == 'hero' then
+                print('not walkable at: ['..next_i..']['..next_j..']')
+                lib.sounds.play_sound('blip')
+            end
+            return false
         end
-    else
-        print('not walkable at: ['..next_i..']['..next_j..']')
-        lib.sounds.play_sound('blip')
     end
-end
-
-function Character:is_moving()
-    --[[ Return true if object has velocity. ]]
-    if self.v_x ~= 0 or self.v_y ~= 0 then
-        return true
-    else
-        return false
-    end
-end
-
-function Character:stop()
-    --[[ Shortcut, sets object's velocity to zero. ]]
-    self.v_x, self.v_y = 0, 0
 end
 
 function Character:random_move()
+    --[[ Tries to add a random neighbouring cell to the move path.
+    Character must have moves remaining in order to add a move to the
+    path. ]]
+    if self.moves_remaining <= 0 or self:is_moving() then return false end
+
+    local i, j = self:get_cell()
+    local attempts = 0
+    while attempts < 10 do
+        attempts = attempts + 1
+        local direction = {'n', 'e', 's', 'w'}
+        local dir = direction[math.random(1, 4)]
+        local delta = { n={-1,0}, e={0,1}, s={1,0}, w={0,-1} } 
+        local next_i, next_j = i + delta[dir][1], j + delta[dir][2]
+
+        if map.grid[next_i] ~= nil and map.grid[next_i][next_j] ~= nil then
+            if map.grid[next_i][next_j].walkable then
+                self.path = { { next_i, next_j, dir } }
+                return true
+            end
+        end
+    end
+end
+
+function Character:move()
     --[[ Perform the next move in our path list ]]
+    if self:is_moving() then return nil end
     if self.path and # self.path > 0 then -- Some moves remain
-        if self:is_moving() then
-            -- do nothing, it's already happening!
-        else
-            local move = table.remove(self.path, 1) -- pop last item
-            local X, Y = map:idx_to_coords(move[1], move[2])
-            local direction = move[3]
-            self.destination = { x=X, y=Y }
-            self:cell_move(direction)
-        end
-    else    -- We have no more moves in our path
-        if not self:is_moving() and not self:is_resting() then
-            self.path = self:plan_moves()   -- fill out path with new moves
-        end
+        local move = table.remove(self.path, 1) -- pop last path item
+        local i, j, direction = unpack(move)
+        local X, Y = map:idx_to_coords(i, j)
+        self.destination = { x=X, y=Y } -- set a destination
+        self:set_speed(direction)       -- set velocity
+        self.moves_remaining = self.moves_remaining - 1
     end
 end
     
-function Character:plan_moves()
-    local cur_i, cur_j = self:get_cell()
-    local path = {}
-    local moves_remaining = self.attribs.move_distance
-    local attempts = 0  -- if character gets stuck
-    while moves_remaining > 0 and attempts < 20 do
-        attempts = attempts + 1
-        local dir = math.random(1,4)
-        local di, dj = 0, 0
-        if dir == 1 then di = 1
-        elseif dir == 2 then di = -1
-        elseif dir == 3 then dj = 1
-        elseif dir == 4 then dj = -1
-        end
-        local direction = {'n', 'e', 's', 'w'}
-        local next_i, next_j = (cur_i + di), (cur_j + dj)
-        if map.grid[next_i] ~= nil and map.grid[next_i][next_j] ~= nil
-        and map.grid[next_i][next_j].walkable then
-            table.insert(path, { next_i, next_j, direction[dir] })
-            moves_remaining = moves_remaining - 1
-            cur_i, cur_j = next_i, next_j
-        end
-    end
-    return path
-end -- Character:random_move()
-
-function Character:is_resting()
+function Character:rest()
     --[[ Returns true if not enough time has passed since our last movement ]]
-    last_move = self.last_move_time or 0
-    if self.attribs.rest == nil then self.attribs.rest = 0 end
+    if self.attribs.rest == nil then
+        self.moves_remaining = self.attribs.move_distance
+        return false
+    end
+    local last_move = self.last_move_time or 0
     if MOAISim.getElapsedTime() - last_move < self.attribs.rest then
-        return true -- resting
+        return true     -- resting
     else
-        return false -- no longer resting
+        self.moves_remaining = self.attribs.move_distance
+        return false    -- refreshed!
     end
 end
+
+
+
+
 
 function Character:talk()
     --[[ Attempt to talk to whatever is facing your character, depending
