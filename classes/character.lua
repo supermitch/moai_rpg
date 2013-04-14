@@ -112,9 +112,10 @@ end
 function Character:rebound()
     --[[ Bounce backwards from current direction vector. --]]
     local X, Y = self.prop:getLoc()
-    local dir = { n={0,1}, e={1,0}, s={0,-1}, w={-1,0} }
-    local new_X = X - dir[self.orientation][1] * 0.5
-    local new_Y = Y - dir[self.orientation][2] * 0.5
+    -- Use the cell offset as a shortcut to getting direction vector
+    local di, dj = map:compass_cell_offset(self.orientation)
+    local new_X = X - di * 0.5
+    local new_Y = Y - dj * 0.5
     self.prop:setLoc(new_X, new_Y)
 end -- rebound(self)
 
@@ -142,10 +143,9 @@ function Character:cell_move(direction)
     --[[ Add the cell in the given direction to the path. ]]
     if self.moves_remaining <= 0 or self:is_moving() then return false end
 
-    local delta = { n={-1,0}, e={0,1}, s={1,0}, w={0,-1} } 
-    local i, j = self:get_cell() 
-    local next_i = i + (delta[direction][1] or 0)
-    local next_j = j + (delta[direction][2] or 0)
+    local i, j = self:get_cell()
+    local di, dj = map:compass_cell_offset(direction)
+    local next_i, next_j = i + di, j + dj
 
     if map.grid[next_i] ~= nil and map.grid[next_i][next_j] ~= nil then
         if map.grid[next_i][next_j].walkable then
@@ -172,9 +172,8 @@ function Character:random_move()
         attempts = attempts + 1
         local direction = {'n', 'e', 's', 'w'}
         local dir = direction[math.random(1, 4)]
-        local delta = { n={-1,0}, e={0,1}, s={1,0}, w={0,-1} } 
-        local next_i, next_j = i + delta[dir][1], j + delta[dir][2]
-
+        local di, dj = map:compass_cell_offset(dir)
+        local next_i, next_j = i + di, j + dj
         if map.grid[next_i] ~= nil and map.grid[next_i][next_j] ~= nil then
             if map.grid[next_i][next_j].walkable then
                 self.path = { { next_i, next_j, dir } }
