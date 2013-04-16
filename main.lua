@@ -92,6 +92,13 @@ function setup_screen ()
 
     MOAISim.openWindow("Ancestors", screen_width, screen_height)
     MOAISim.setStep (1 / 60)
+
+
+MOAIDebugLines.setStyle ( MOAIDebugLines.TEXT_BOX, 1, 1, 1, 1, 1 )
+MOAIDebugLines.setStyle ( MOAIDebugLines.TEXT_BOX_LAYOUT, 1, 0, 0, 1, 1 )
+MOAIDebugLines.setStyle ( MOAIDebugLines.TEXT_BOX_BASELINES, 1, 1, 0, 0, 1 )
+
+
     camera = MOAICamera2D.new()
 
     -- Set up map viewport
@@ -151,11 +158,10 @@ function setup_screen ()
     font:loadFromTTF('fonts/resource.ttf', charcodes, 20, 163)
     font:setDefaultSize(20, 163)
 
-    fps_box = add_textbox('FPS', -240, 400, 150,150, MOAITextBox.LEFT_JUSTIFY)
+    fps_box = add_textbox('FPS', -250, 200, -50, 250)
     ui_layer:insertProp(fps_box)
 
-    talkbox = add_textbox('Talk', -240, -80, 50, 200, MOAITextBox.LEFT_JUSTIFY) 
-end -- setup_screen()
+    end -- setup_screen()
 
 
 function load_controller(controls_viewport)
@@ -176,13 +182,13 @@ function load_controller(controls_viewport)
     return control_layer
 end
 
-function add_textbox(text, left, top, height, width, alignment)
-
+function add_textbox(text, left, top, right, bottom)
+    --[[ Note that because y is flipped, top is the the bottom of the visible
+    screen and bottom is at the top! ]]
     local textbox = MOAITextBox.new()
     textbox:setString( text )
     textbox:setFont( font )
-    textbox:setRect( left, top, left+width, top-height )
-    textbox:setAlignment( alignment )
+    textbox:setRect( left, top, right, bottom )
     textbox:setYFlip( true )
     --textbox:setColor(1, 0.2, 0, 1)
     return textbox

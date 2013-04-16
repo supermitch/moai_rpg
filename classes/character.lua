@@ -35,9 +35,6 @@ function Character:load_gfx()
     self.prop = MOAIProp2D.new()
     self.prop:setDeck(sprite)
     self.width, self.height = 1, 1
-    self.v_x, self.v_y = 0, 0
-    self.orientation = 'n'
-    self.path = {}
 end
 
 function Character:load_attribs()
@@ -46,7 +43,15 @@ function Character:load_attribs()
     monsters = lib.assload.read('objects/monsters/', 'json')
     -- Try one, if nil, try the other. TODO: Bug if kinds are not unique!
     self.attribs = humans[self.kind] or monsters[self.kind]
+
+    -- movement system:
+    self.v_x, self.v_y = 0, 0
+    self.orientation = 'n'
+    self.path = {}
     self.moves_remaining = self.attribs.move_distance or 1
+
+    -- other:
+    self.talking = false
 end
 
 -- MOVEMENT COMPONENTS --
@@ -56,9 +61,9 @@ function Character:set_speed(dir)
     --[[ Set x and y speeds according to compass direction arg. ]]
     local spd = self.attribs.speed
     local speeds = { n={0,spd}, e={spd,0}, s={0,-spd}, w={-spd,0} }
-
     self.v_x = speeds[dir][1] or 0
     self.v_y = speeds[dir][2] or 0
+    self.orientation = dir
 end
 
 function Character:update_position()
@@ -216,21 +221,33 @@ function Character:talk()
     --[[ Attempt to talk to whatever is facing your character, depending
     on last move direction. ]]
     local talking = false
-    local cur_i, cur_j = self:get_cell() 
+    local i, j = self:get_cell() 
     local di, dj = map:compass_cell_offset(self.orientation)
-    local new_i, new_j = cur_i + di, cur_j + dj
+    local next_i, next_j = i + di, j + dj   -- cell in front of us
     for i, npc in ipairs(objects.humans) do
         local npc_i, npc_j = npc:get_cell()
-        if npc_i == new_i and npc_j == new_j then    -- is our neighbour!
+        if npc_i == next_i and npc_j == next_j then    -- is our neighbour!
             print("Talking to ".. npc.name)
-            talking = true
-            talkbox:setString("Hi there!")
-            ui_layer:insertProp(talkbox)
+            self.talking = true
             break
         end
     end
-    if not talking then
+    if not self.talking then
         print("(You're talking to yourself again...)")
+    else
+
+            local gfxQuad = MOAIGfxQuad2D.new ()
+            gfxQuad:setTexture("images/ui/textbox_main.png")
+            gfxQuad:setRect(-220, -120, 220, -220)
+
+            local prop = MOAIProp2D.new()
+            prop:setDeck(gfxQuad)
+            ui_layer:insertProp(prop)
+
+            local box = add_textbox('', -210, -220, 210, -120)
+            box:setString("Hi there!\nHow do textboxes work?\nFuck!?")
+            ui_layer:insertProp(box)
+
     end
     return nil
 end
