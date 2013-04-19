@@ -57,48 +57,73 @@ end
 -- MOVEMENT COMPONENTS --
 -- TODO: Move outside!
 
-function Character:set_speed(dir)
+function Character:set_speed(dir, value)
     --[[ Set x and y speeds according to compass direction arg. ]]
-    local spd = self.attribs.speed
-    local speeds = { n={0,spd}, e={spd,0}, s={0,-spd}, w={-spd,0} }
-    self.v_x = speeds[dir][1] or 0
-    self.v_y = speeds[dir][2] or 0
+    local spd = value or self.attribs.speed -- use value if provided!
+    local speeds = { n={0,1}, e={1,0}, s={0,-1}, w={-1,0} }
+    self.v_x = (speeds[dir][1] or 0) * spd
+    self.v_y = (speeds[dir][2] or 0) * spd
     self.orientation = dir
 end
 
 function Character:update_position()
     --[[ Move the prop according to speed attribute. ]]
-    cur_x, cur_y = self.prop:getLoc()
-    new_x, new_y = cur_x + self.v_x/60, cur_y + self.v_y/60
+    local x, y = self.prop:getLoc()
+    local dt = 1/60 -- time step, assuming 60 fps
+    local dx, dy = self.v_x * dt, self.v_y * dt
+
+    --[[ If we have a destination, we would rather not overshoot it
+    so we only move the lesser of either dx (our intended step) or the 
+    distance required to hit destination. ]]
+    local gapx, gapy = dx, dy
+    if self.destination and self.destination.x and self.destination.y then
+        gapx, gapy = self.destination.x - x, self.destination.y - y
+    end
+
+    local sign = 1
+    if dx < 0 or dy < 0 then
+        sign = -1
+    end
+    dx = sign * math.min( math.abs(dx), math.abs(gapx) )
+    dy = sign * math.min( math.abs(dy), math.abs(gapy) )
+    local new_x, new_y = x + dx, y + dy
     self.prop:setLoc(new_x, new_y)
     self.i, self.j = self:get_cell()
 end
 
 function Character:is_moving()
-    --[[ Return true if object has velocity. ]]
+    --[[ Return true if object has non-zero x or y velocity. ]]
     if self.v_x ~= 0 or self.v_y ~= 0 then
         return true
-    else
-        return false
     end
+    return false
 end
 
 function Character:check_destination()
     --[[ A prop method for seeking an (X, Y) world unit location. --]]
-    local X, Y = self.prop:getLoc() -- world coords
-    if (self.v_y > 0 and Y >= self.destination.y) or
-       (self.v_x > 0 and X >= self.destination.x) or
-       (self.v_y < 0 and Y <= self.destination.y) or
-       (self.v_x < 0 and X <= self.destination.x) then
-        self:stop()
-        self.last_move_time = MOAISim.getElapsedTime()
+    if self:is_moving() then
+        local X, Y = self.prop:getLoc() -- world coords
+        if (self.v_y > 0 and Y >= self.destination.y) or
+           (self.v_x > 0 and X >= self.destination.x) or
+           (self.v_y < 0 and Y <= self.destination.y) or
+           (self.v_x < 0 and X <= self.destination.x) then
+           return true
+        end
     end
+    return false
 end -- check_destination()
+
+function Character:stop()
+    --[[ Shortcut, sets object's velocity to zero. ]]
+    self.v_x, self.v_y = 0, 0
+    self.destination.x, self.destination.y = nil, nil
+    self.last_move_time = MOAISim.getElapsedTime()
+end
 
 function Character:update()
     --[[ We'd like to call update once per frame. ]]
-    if self:is_moving() then
-        self:check_destination()
+    if self:check_destination() then
+        self:stop()
     end
     if self.moves_remaining <= 0 then
         self:rest()
@@ -108,36 +133,72 @@ function Character:update()
     self:update_position()
 end
 
-
-function Character:stop()
-    --[[ Shortcut, sets object's velocity to zero. ]]
-    self.v_x, self.v_y = 0, 0
-end
-
 function Character:rebound()
     --[[ Bounce backwards from current direction vector. --]]
     local X, Y = self.prop:getLoc()
     -- Use the cell offset as a shortcut to getting direction vector
     local di, dj = map:compass_cell_offset(self.orientation)
-    local new_X = X - di * 0.5
-    local new_Y = Y - dj * 0.5
+    local new_X = X - di 
+    local new_Y = Y - dj
     self.prop:setLoc(new_X, new_Y)
+end -- rebound(self)
+
+function Character:push(target)
+
+    print('pushing...')
+    target:stop()
+
+    -- Find out where we were headed, which is where target IS
+    local dest_x, dest_y = self.destination.x, self.destination.y
+    local dest_i, dest_j = map:coords_to_idx(dest_x, dest_y)
+    -- Find the cell in the same direction as us
+    local di, dj = map:compass_cell_offset(self.orientation)
+    local next_i, next_j = dest_i + di, dest_j + dj
+    local push_X, push_Y = map:idx_to_coords(next_i, next_j)
+    print(push_X, push_Y)
+    print(target.prop:getLoc())
+    print(push_X, push_Y)
+
+    target.moves_remaining = 0
+    target.destination = { x=push_X, y=push_Y } -- set a destina
+    -- set speed to just above ours. Push them out of the way!
+    target:set_speed(self.orientation, self.attribs.speed * 1.2)
+    
+end
+
+function Character:move_back()
+    --[[ Bounce backwards from current direction vector. --]]
+    local direction = map:compass_opposite(self.orientation)
+
+    -- Find out where we were headed
+    local dest_x, dest_y = self.destination.x, self.destination.y
+    local dest_i, dest_j = map:coords_to_idx(dest_x, dest_y)
+    -- Find the cell in the opposite direction (probably where we are now!)
+    local di, dj = map:compass_cell_offset(direction)
+    local next_i, next_j = dest_i + di, dest_j + dj
+
+    if map.grid[next_i] ~= nil and map.grid[next_i][next_j] ~= nil then
+        if map.grid[next_i][next_j].walkable then
+            local X, Y = map:idx_to_coords(next_i, next_j)
+            self:stop()
+            self.destination = { x=X, y=Y } -- set a destination
+            self:set_speed(direction)       -- set velocity
+
+        else
+            if self.kind == 'hero' then
+                print('not walkable at: ['..next_i..']['..next_j..']')
+                lib.sounds.play_sound('blip')
+            end
+            return false
+        end
+    end
+    return nil
 end -- rebound(self)
 
 function Character:re_move()
     --[[ Move to last known good location. --]]
     self.prop:setLoc( self:get_last_loc() )
 end -- re_move(self)
-
-function Character:get_last_loc()
-    --[[ Simply return last known location as an (X, Y) coord. --]]
-    return self.last_X, self.last_Y
-end -- get_last_loc()
-
-function Character:set_last_loc()
-    --[[ Save current location as last known good location. --]]
-    self.last_X, self.last_Y = self.prop:getLoc()
-end -- set_last_loc(self)
 
 function Character:get_cell()
     --[[ Return objects's current (i, j) map coordinates ]]
@@ -148,20 +209,16 @@ function Character:cell_move(direction)
     --[[ Add the cell in the given direction to the path. ]]
     if self.moves_remaining <= 0 or self:is_moving() then return false end
 
-    local i, j = self:get_cell()
+    local i, j = self:get_cell()    -- The cell we're in
     local di, dj = map:compass_cell_offset(direction)
     local next_i, next_j = i + di, j + dj
 
-    if map.grid[next_i] ~= nil and map.grid[next_i][next_j] ~= nil then
-        if map.grid[next_i][next_j].walkable then
-            self.path = { { next_i, next_j, direction } }
-            return true
-        else
-            if self.kind == 'hero' then
-                print('not walkable at: ['..next_i..']['..next_j..']')
-                lib.sounds.play_sound('blip')
-            end
-            return false
+    if map:walkable(next_i, next_j) then
+        self.path = { { next_i, next_j, direction } }
+        return true
+    else
+        if self.kind == 'hero' then
+            lib.sounds.play_sound('blip')
         end
     end
 end
@@ -169,8 +226,6 @@ end
 function Character:random_move()
     --[[ Tries to add a random neighbouring cell to the move path.
     You need to have moves available in order to add a new one. ]]
-    if self.moves_remaining <= 0 or self:is_moving() then return false end
-
     local i, j = self:get_cell()
     local attempts = 0
     while attempts < 10 do
@@ -179,11 +234,8 @@ function Character:random_move()
         local dir = direction[math.random(1, 4)]
         local di, dj = map:compass_cell_offset(dir)
         local next_i, next_j = i + di, j + dj
-        if map.grid[next_i] ~= nil and map.grid[next_i][next_j] ~= nil then
-            if map.grid[next_i][next_j].walkable then
-                self.path = { { next_i, next_j, dir } }
-                return true
-            end
+        if map:walkable(next_i, next_j) then
+            return { next_i, next_j, dir }
         end
     end
 end
@@ -198,11 +250,18 @@ function Character:move()
         self.destination = { x=X, y=Y } -- set a destination
         self:set_speed(direction)       -- set velocity
         self.moves_remaining = self.moves_remaining - 1
+    else
+        if self.attribs.move_type == 'random' then
+            self.path = { self:random_move() }
+        end
     end
 end
     
 function Character:rest()
     --[[ Returns true if not enough time has passed since our last movement ]]
+    if self.asleep then -- Rip Van Winkle
+        return true
+    end
     if self.attribs.rest == nil or self.attribs.rest == 0 then
         self.moves_remaining = self.attribs.move_distance
         return false

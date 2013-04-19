@@ -208,21 +208,30 @@ function coords_rect(obj)
     local x2 = X + obj.width / 2
     local x3 = x2
     local x4 = x1
-    local y1 = Y - obj.height / 2
+    local y1 = Y + obj.height / 2
     local y2 = y1
-    local y3 = Y + obj.height / 2
+    local y3 = Y - obj.height / 2
     local y4 = y3
+    --[[if obj.kind == 'hero' then
+        print(X, Y)
+        print('1', helpers.math.round(x1,2), helpers.math.round(y1,2))
+        print('2', helpers.math.round(x2,2), helpers.math.round(y2,2))
+        print('3', helpers.math.round(x3,2), helpers.math.round(y3,2))
+        print('4', helpers.math.round(x4,2), helpers.math.round(y4,2))
+    end]]
     return x1, y1, x2, y2, x3, y3, x4, y4
 end -- coords_rect(obj)
 
 function collide_rect(obj_a, obj_b)
     --[[ Find out if two rectangles are intersecting. Corner 1 is top-left,
-    then count clockwise. --]]
+    then move clockwise. --]]
     local a_x1, a_y1, a_x2, a_y2, a_x3, a_y3, a_x4, a_y4 = coords_rect(obj_a)
     local b_x1, b_y1, b_x2, b_y2, b_x3, b_y3, b_x4, b_y4 = coords_rect(obj_b)
     
     if a_x3 > b_x1 and a_x1 < b_x3 then -- Check X collision first
-        if a_y3 > b_y1 and a_y1 < b_y3 then -- Check Y collision second
+        if a_y3 < b_y1 and a_y1 > b_y3 then -- Check Y collision second
+            --print('a', a_x1, a_y1, a_x3, a_y3)
+            --print('b', b_x1, b_y1, b_x3, b_y3)
             return true
         end 
     end
@@ -357,6 +366,7 @@ function handle_keyboard(key, down)
     elseif key == 80 or key == 112 then -- p (pause)
         print("Pause")
         key_down = 'p'
+        objects.hero:stop()
     elseif key == 81 or key == 113 then -- q (quit)
         os.exit(0)
         key_down = 'q'
@@ -380,6 +390,52 @@ function handle_keyboard(key, down)
     return key_down
 end
 
+function collide_objects(obj1, obj2)
+
+    local push = obj1.attribs.strength > obj2.attribs.strength
+
+    if obj1:is_moving() and not obj2:is_moving() then
+        if push then
+            --obj1:push(obj2)
+        else
+            --obj1:move_back()
+        end
+    elseif not obj1:is_moving() and obj2:is_moving() then
+        if push then
+            obj2:move_back()
+        else
+            obj2:push(obj1)
+        end
+    elseif obj1:is_moving() and obj2:is_moving() then
+        --[[
+        if hero.v_x > 0 and npc.v_x > 0 then
+            if hero.attribs.strength >= npc.attribs.strength then
+                npc.v_x = hero.v_x
+            else
+                hero.v_x = npc.v_x
+            end
+        elseif hero.v_x < 0 and npc.v_x < 0 then
+            if hero.attribs.strength >= npc.attribs.strength then
+                npc.v_x = hero.v_x
+            else
+                npc.v_x = hero.v_x
+            end
+        elseif hero.v_y > 0 and npc.v_y > 0 then
+            if hero.attribs.strength >= npc.attribs.strength then
+                npc.v_y = hero.v_y
+            else
+                hero.v_y = npc.v_y
+            end
+        elseif hero.v_y < 0 and npc.v_y < 0 then
+            if hero.attribs.strength >= npc.attribs.strength then
+                npc.v_y = npc.v_y
+            else
+                npc.v_y = hero.v_y
+            end
+        end -- ]]
+    end
+end
+
 function game_loop ()
     local frames = 0
 
@@ -396,22 +452,16 @@ function game_loop ()
     while not game_over do
         camera:seekLoc(objects.hero.prop:getLoc())
         update_fps( MOAISim:getPerformance() )
-
         coroutine.yield ()
 
+        objects.hero:update()
+
         for i, npc in ipairs(objects.humans) do
-            npc:random_move()
+            if collide_rect(npc, objects.hero) then
+                collide_objects(npc, objects.hero)
+                lib.sounds.play_sound('blip')
+            end
             npc:update()
-        end
-
-        frames = frames + 1
-        if frames == 180 then   -- FPS = 60 so 180 = 3 sec
-            frames = 0  -- reset
-        end
-
-        if helpers.table.is_in(key_down, {'up', 'right', 'down', 'left'}) then
-            local direction = {up='n', right='e', down='s', left='w'}
-            objects.hero:cell_move(direction[key_down])
         end
 
         for i, monster in ipairs (objects.monsters) do
@@ -439,7 +489,6 @@ function game_loop ()
                     break
                 end
             end
-            monster:random_move()
             monster:update()
         end
 
@@ -453,8 +502,11 @@ function game_loop ()
             end
         end
    
-        objects.hero:update()
-        objects.hero:set_last_loc()
+        if helpers.table.is_in(key_down, {'up', 'right', 'down', 'left'}) then
+            local direction = {up='n', right='e', down='s', left='w'}
+            objects.hero:cell_move(direction[key_down])
+        end
+
     end -- while not gameOver
 end -- game_loop()
 
