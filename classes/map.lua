@@ -31,7 +31,24 @@ function Map:compass_cell_offset(direction)
         return 0, -1
     else
         print("Bad compass direction: ", direction)
-        return nil
+    end
+end
+
+function Map:compass_opposite(direction)
+    --[[ Return the opposite direciton to the argument. ]]
+    local dict = {n='s', e='w', s='n', w='e'}
+    local opposite = dict[direction]
+    if not opposite then
+        print("Bad compass direction: ", direction)
+    end
+    return opposite
+end
+
+function Map:walkable(i, j)
+    --[[ Return true if cell i,j is walkable. ]]
+    -- if row exists and cell exists and cell is walkable
+    if self.grid[i] and self.grid[i][j] and map.grid[i][j].walkable then
+        return true
     end
 end
 
