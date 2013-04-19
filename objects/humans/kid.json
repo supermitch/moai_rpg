@@ -1,12 +1,15 @@
 {
     "type": "humans",
+    "rest": 2,
     "kind": "kid",
     "texture": "kid_1",
     "agility": 2,
     "defence": 2,
     "health": 10,
     "move_distance": 1,
-    "speed": 1,
+    "move_type": "random",
     "rest": 2,
-    "strength": 4
+    "speed": 1,
+    "strength": 4,
+    "weight": 120
 }

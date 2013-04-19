@@ -6,6 +6,7 @@
     "defence": 3,
     "health": 5,
     "move_distance": 4,
+    "move_type": "random",
     "rest": 3,
     "speed": 4,
     "strength": 4

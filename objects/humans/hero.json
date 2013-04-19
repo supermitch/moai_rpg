@@ -6,6 +6,8 @@
     "defence": 3,
     "health": 20,
     "move_distance": 1,
+    "move_type": "player",
     "speed": 3,
-    "strength": 5
+    "strength": 5,
+    "weight": 150
 }
