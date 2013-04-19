@@ -34,6 +34,14 @@ function Map:compass_cell_offset(direction)
     end
 end
 
+function Map:next_cell(i, j, direction)
+    --[[ Given a cell index, return the next cell in a given direction ]]
+    local di, dj = self:compass_cell_offset(direction)
+    if di and dj then
+        return i + di, j + dj
+    end
+end
+
 function Map:compass_opposite(direction)
     --[[ Return the opposite direciton to the argument. ]]
     local dict = {n='s', e='w', s='n', w='e'}

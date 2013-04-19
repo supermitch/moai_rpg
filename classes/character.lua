@@ -152,8 +152,7 @@ function Character:push(target)
     local dest_x, dest_y = self.destination.x, self.destination.y
     local dest_i, dest_j = map:coords_to_idx(dest_x, dest_y)
     -- Find the cell in the same direction as us
-    local di, dj = map:compass_cell_offset(self.orientation)
-    local next_i, next_j = dest_i + di, dest_j + dj
+    local next_i, next_j = map:next_cell(dest_i, dest_j, self.orientation)
     local push_X, push_Y = map:idx_to_coords(next_i, next_j)
     print(push_X, push_Y)
     print(target.prop:getLoc())
@@ -174,23 +173,19 @@ function Character:move_back()
     local dest_x, dest_y = self.destination.x, self.destination.y
     local dest_i, dest_j = map:coords_to_idx(dest_x, dest_y)
     -- Find the cell in the opposite direction (probably where we are now!)
-    local di, dj = map:compass_cell_offset(direction)
-    local next_i, next_j = dest_i + di, dest_j + dj
+    local next_i, next_j = map:next_cell(dest_i, dest_j, direction) 
 
-    if map.grid[next_i] ~= nil and map.grid[next_i][next_j] ~= nil then
-        if map.grid[next_i][next_j].walkable then
-            local X, Y = map:idx_to_coords(next_i, next_j)
-            self:stop()
-            self.destination = { x=X, y=Y } -- set a destination
-            self:set_speed(direction)       -- set velocity
-
-        else
-            if self.kind == 'hero' then
-                print('not walkable at: ['..next_i..']['..next_j..']')
-                lib.sounds.play_sound('blip')
-            end
-            return false
+    if map:walkable(next_i, next_j) then
+        local X, Y = map:idx_to_coords(next_i, next_j)
+        self:stop()
+        self.destination = { x=X, y=Y } -- set a destination
+        self:set_speed(direction)       -- set velocity
+    else
+        if self.kind == 'hero' then
+            print('not walkable at: ['..next_i..']['..next_j..']')
+            lib.sounds.play_sound('blip')
         end
+        return false
     end
     return nil
 end -- rebound(self)
@@ -210,8 +205,7 @@ function Character:cell_move(direction)
     if self.moves_remaining <= 0 or self:is_moving() then return false end
 
     local i, j = self:get_cell()    -- The cell we're in
-    local di, dj = map:compass_cell_offset(direction)
-    local next_i, next_j = i + di, j + dj
+    local next_i, next_j = map:next_cell(i, j, direction)
 
     if map:walkable(next_i, next_j) then
         self.path = { { next_i, next_j, direction } }
@@ -227,16 +221,15 @@ function Character:random_move()
     --[[ Tries to add a random neighbouring cell to the move path.
     You need to have moves available in order to add a new one. ]]
     local i, j = self:get_cell()
+    local direction = {'n', 'e', 's', 'w'}
     local attempts = 0
     while attempts < 10 do
-        attempts = attempts + 1
-        local direction = {'n', 'e', 's', 'w'}
         local dir = direction[math.random(1, 4)]
-        local di, dj = map:compass_cell_offset(dir)
-        local next_i, next_j = i + di, j + dj
+        local next_i, next_j = map:next_cell(i, j, dir)
         if map:walkable(next_i, next_j) then
             return { next_i, next_j, dir }
         end
+        attempts = attempts + 1
     end
 end
 
@@ -281,8 +274,7 @@ function Character:talk()
     on last move direction. ]]
     local talking = false
     local i, j = self:get_cell() 
-    local di, dj = map:compass_cell_offset(self.orientation)
-    local next_i, next_j = i + di, j + dj   -- cell in front of us
+    local next_i, next_j = map:next_cell(i, j, self.orientation)
     for i, npc in ipairs(objects.humans) do
         local npc_i, npc_j = npc:get_cell()
         if npc_i == next_i and npc_j == next_j then    -- is our neighbour!
