@@ -298,7 +298,7 @@ function Character:talk()
         prop:setDeck(gfxQuad)
         ui_layer:insertProp(prop)
 
-        local box = add_textbox('', -210, -120, 420, 100)
+        local box = add_textbox('', -210, -123, 420, 90)
         box:setString("Hi there!\nHow do textboxes work?\nFuck!?")
         ui_layer:insertProp(box)
     end
