@@ -153,16 +153,20 @@ function Character:push(target)
     local dest_i, dest_j = map:coords_to_idx(dest_x, dest_y)
     -- Find the cell in the same direction as us
     local next_i, next_j = map:next_cell(dest_i, dest_j, self.orientation)
-    local push_X, push_Y = map:idx_to_coords(next_i, next_j)
-    print(push_X, push_Y)
-    print(target.prop:getLoc())
-    print(push_X, push_Y)
+    if map:walkable(next_i, next_j) then
+        local push_X, push_Y = map:idx_to_coords(next_i, next_j)
+        print(push_X, push_Y)
+        print(target.prop:getLoc())
 
-    target.moves_remaining = 0
-    target.destination = { x=push_X, y=push_Y } -- set a destina
-    -- set speed to just above ours. Push them out of the way!
-    target:set_speed(self.orientation, self.attribs.speed * 1.2)
-    
+        target.destination = { x=push_X, y=push_Y } -- set a destina
+        -- set speed to just above ours. Push them out of the way!
+        target:set_speed(self.orientation, self.attribs.speed * 1.2)
+        return true
+    else
+        print('not walkable at: ['..next_i..']['..next_j..']')
+        lib.sounds.play_sound('blip')
+        return false
+    end
 end
 
 function Character:move_back()

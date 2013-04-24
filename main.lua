@@ -93,13 +93,13 @@ function setup_screen ()
     MOAISim.openWindow("Ancestors", screen_width, screen_height)
     MOAISim.setStep (1 / 60)
 
-
-MOAIDebugLines.setStyle ( MOAIDebugLines.TEXT_BOX, 1, 1, 1, 1, 1 )
-MOAIDebugLines.setStyle ( MOAIDebugLines.TEXT_BOX_LAYOUT, 1, 0, 0, 1, 1 )
-MOAIDebugLines.setStyle ( MOAIDebugLines.TEXT_BOX_BASELINES, 1, 1, 0, 0, 1 )
+ -- MOAIDebugLines.setStyle(MOAIDebugLines.TEXT_BOX, 1, 1, 1, 1, 1)
+ -- MOAIDebugLines.setStyle(MOAIDebugLines.TEXT_BOX_LAYOUT, 1, 0, 0, 1, 1)
+ -- MOAIDebugLines.setStyle(MOAIDebugLines.TEXT_BOX_BASELINES, 1, 1, 0, 0, 1)
 
 
     camera = MOAICamera2D.new()
+    ui_camera = MOAICamera2D.new()
 
     -- Set up map viewport
     local map_rect = classes.rect.Rectangle.new(0, 0, screen_width, map_height)
@@ -129,6 +129,7 @@ MOAIDebugLines.setStyle ( MOAIDebugLines.TEXT_BOX_BASELINES, 1, 1, 0, 0, 1 )
     -- Set up text/UI layer
     ui_layer = MOAILayer2D.new()
     ui_layer:setViewport(ui_vp)
+    ui_layer:setCamera(ui_camera)
     MOAIRenderMgr.pushRenderPass(ui_layer)
 
     -- Set up controls viewport
@@ -155,10 +156,10 @@ MOAIDebugLines.setStyle ( MOAIDebugLines.TEXT_BOX_BASELINES, 1, 1, 0, 0, 1 )
     font = MOAIFont.new()
     charcodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'..
                 '0123456789 .,:;!?<>()[]{}|&/-+_~`/'
-    font:loadFromTTF('fonts/resource.ttf', charcodes, 20, 163)
-    font:setDefaultSize(20, 163)
+    font:loadFromTTF('fonts/candal.ttf', charcodes, 8, 163)
+    font:setDefaultSize(8, 163)
 
-    fps_box = add_textbox('FPS', -250, 200, -50, 250)
+    fps_box = add_textbox('FPS', -200, 100, -50, 150)
     ui_layer:insertProp(fps_box)
 
     end -- setup_screen()
@@ -194,10 +195,46 @@ function add_textbox(text, left, top, right, bottom)
     return textbox
 end
 
+function center_box(text, center_x, center_y, width, height)
+    local box = MOAITextBox.new()
+    box:setString(text)
+    box:setFont(font)
+    -- box:setRect( left, top, right, bottom )
+    -- Remember to convert to UI layer units (position * 32)
+    box:setRect(center_x*32 - width/2, center_y*32 - height/2,
+                center_x*32 + width/2, center_y*32 + height/2)
+    box:setYFlip(true) -- Remember top is now bottom!!
+    box:setAlignment(MOAITextBox.CENTER_JUSTIFY)
+    return box
+end
+
 function update_fps(fps)
     fps_box:setString('fps: ' .. helpers.math.round(fps, 2) )
 end
 
+function show_points(x, y, value)
+    local sign = ''
+    local color = {0.7, 0, 0, 1}
+    if value > 0 then -- Healing
+        sign = '+'
+        color = {0, 0.5, 0, 1}
+    end
+    box = center_box(sign..tostring(value), x, y+0.5, 50, 30)
+    box:setColor(unpack(color))
+
+    function box:launch ()
+        self.thread = MOAIThread:new ()
+        self.thread:run (
+            function ()
+    MOAIThread.blockOnAction(self:moveLoc(0, 10, 0, 0.5, MOAIEaseType.SOFT_SMOOTH))
+    ui_layer:removeProp(self)
+            end)
+    end
+    
+    ui_layer:insertProp(box)
+
+    box:launch()
+end
 
 function coords_rect(obj)
     --[[ Return coordinates as (x, y) for all 4 corners of a horizontally
@@ -270,9 +307,9 @@ function calc_damage(strength, defence)
     -- Scale damage by % difference with defence
     local damage = str + str * (str - def) / def
     -- Up to 25 % bonus on damage
-    damage = helpers.math.round(damage + damage * math.random() * 0.25, 2)
+    damage = helpers.math.round(damage + damage * math.random() * 0.25, 0)
     if damage > 0 then
-        return damage
+        return -1 * damage  -- negative
     else
         return 0
     end
@@ -292,7 +329,10 @@ function attack(attacker, defender)
             lib.sounds.play_sound('clang')
             print(helpers.string.firstToUpper(defender.name)..
                   " lost "..damage.." health!")
-            defender.attribs.health = defender.attribs.health - damage
+            local x, y = defender.prop:getLoc()
+            show_points(x, y, damage)
+                                 
+            defender.attribs.health = defender.attribs.health + damage
         else
             lib.sounds.play_sound('clunk')
             print(helpers.string.firstToUpper(defender.name).."blocked!")
@@ -392,47 +432,31 @@ end
 
 function collide_objects(obj1, obj2)
 
-    local push = obj1.attribs.strength > obj2.attribs.strength
+    local pusher, target = obj1, obj2   -- assume
+    if obj1.attribs.strength < obj2.attribs.strength then
+        pusher, target = obj2, obj1
+    end
 
-    if obj1:is_moving() and not obj2:is_moving() then
-        if push then
-            --obj1:push(obj2)
-        else
-            --obj1:move_back()
+    if pusher:is_moving() and not target:is_moving() then
+        if not pusher:push(target) then
+            pusher:move_back()
         end
-    elseif not obj1:is_moving() and obj2:is_moving() then
-        if push then
-            obj2:move_back()
+    elseif not pusher:is_moving() and target:is_moving() then
+        target:move_back()
+    end
+
+    if pusher:is_moving() and target:is_moving() then
+        if pusher.v_x * target.v_y ~= 0 then -- perpendicular
+            -- Do something?
+            -- pusher:push(target)
+        elseif pusher.v_y * target.v_x ~= 0 then -- perpendicular
+            -- Do something?
+            -- pusher:push(target)
         else
-            obj2:push(obj1)
+            if not pusher:push(target) then
+                pusher:move_back()
+            end
         end
-    elseif obj1:is_moving() and obj2:is_moving() then
-        --[[
-        if hero.v_x > 0 and npc.v_x > 0 then
-            if hero.attribs.strength >= npc.attribs.strength then
-                npc.v_x = hero.v_x
-            else
-                hero.v_x = npc.v_x
-            end
-        elseif hero.v_x < 0 and npc.v_x < 0 then
-            if hero.attribs.strength >= npc.attribs.strength then
-                npc.v_x = hero.v_x
-            else
-                npc.v_x = hero.v_x
-            end
-        elseif hero.v_y > 0 and npc.v_y > 0 then
-            if hero.attribs.strength >= npc.attribs.strength then
-                npc.v_y = hero.v_y
-            else
-                hero.v_y = npc.v_y
-            end
-        elseif hero.v_y < 0 and npc.v_y < 0 then
-            if hero.attribs.strength >= npc.attribs.strength then
-                npc.v_y = npc.v_y
-            else
-                npc.v_y = hero.v_y
-            end
-        end -- ]]
     end
 end
 
@@ -450,7 +474,9 @@ function game_loop ()
 
     key_down = ''
     while not game_over do
-        camera:seekLoc(objects.hero.prop:getLoc())
+        hero_X, hero_Y = objects.hero.prop:getLoc()
+        camera:seekLoc(hero_X, hero_Y)
+        ui_camera:seekLoc(hero_X * 32, hero_Y * 32)
         update_fps( MOAISim:getPerformance() )
         coroutine.yield ()
 
@@ -459,7 +485,11 @@ function game_loop ()
         for i, npc in ipairs(objects.humans) do
             if collide_rect(npc, objects.hero) then
                 collide_objects(npc, objects.hero)
-                lib.sounds.play_sound('blip')
+            end
+            for j, monster in ipairs(objects.monsters) do
+                if collide_rect(npc, monster) then
+                    collide_objects(npc, monster)
+                end
             end
             npc:update()
         end
