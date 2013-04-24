@@ -93,9 +93,9 @@ function setup_screen ()
     MOAISim.openWindow("Ancestors", screen_width, screen_height)
     MOAISim.setStep (1 / 60)
 
- -- MOAIDebugLines.setStyle(MOAIDebugLines.TEXT_BOX, 1, 1, 1, 1, 1)
- -- MOAIDebugLines.setStyle(MOAIDebugLines.TEXT_BOX_LAYOUT, 1, 0, 0, 1, 1)
- -- MOAIDebugLines.setStyle(MOAIDebugLines.TEXT_BOX_BASELINES, 1, 1, 0, 0, 1)
+-- MOAIDebugLines.setStyle(MOAIDebugLines.TEXT_BOX, 1, 1, 1, 1, 1)
+-- MOAIDebugLines.setStyle(MOAIDebugLines.TEXT_BOX_LAYOUT, 1, 0, 0, 1, 1)
+-- MOAIDebugLines.setStyle(MOAIDebugLines.TEXT_BOX_BASELINES, 1, 1, 0, 0, 1)
 
 
     camera = MOAICamera2D.new()
@@ -129,8 +129,12 @@ function setup_screen ()
     -- Set up text/UI layer
     ui_layer = MOAILayer2D.new()
     ui_layer:setViewport(ui_vp)
-    ui_layer:setCamera(ui_camera)
     MOAIRenderMgr.pushRenderPass(ui_layer)
+    
+    text_layer = MOAILayer2D.new()
+    text_layer:setViewport(ui_vp)
+    text_layer:setCamera(ui_camera)
+    MOAIRenderMgr.pushRenderPass(text_layer)
 
     -- Set up controls viewport
     local cont_rect = classes.rect.Rectangle.new(0, map_height, screen_width,
@@ -159,7 +163,7 @@ function setup_screen ()
     font:loadFromTTF('fonts/candal.ttf', charcodes, 8, 163)
     font:setDefaultSize(8, 163)
 
-    fps_box = add_textbox('FPS', -200, 100, -50, 150)
+    fps_box = add_textbox('FPS', -250, 250, 150, 50)
     ui_layer:insertProp(fps_box)
 
     end -- setup_screen()
@@ -183,14 +187,14 @@ function load_controller(controls_viewport)
     return control_layer
 end
 
-function add_textbox(text, left, top, right, bottom)
+function add_textbox(text, left, top, width, height)
     --[[ Note that because y is flipped, top is the the bottom of the visible
     screen and bottom is at the top! ]]
     local textbox = MOAITextBox.new()
-    textbox:setString( text )
-    textbox:setFont( font )
-    textbox:setRect( left, top, right, bottom )
-    textbox:setYFlip( true )
+    textbox:setString(text)
+    textbox:setFont(font)
+    textbox:setRect(left, top - height, left + width, top)
+    textbox:setYFlip(true)
     --textbox:setColor(1, 0.2, 0, 1)
     return textbox
 end
@@ -227,11 +231,11 @@ function show_points(x, y, value)
         self.thread:run (
             function ()
     MOAIThread.blockOnAction(self:moveLoc(0, 10, 0, 0.5, MOAIEaseType.SOFT_SMOOTH))
-    ui_layer:removeProp(self)
+    text_layer:removeProp(self)
             end)
     end
     
-    ui_layer:insertProp(box)
+    text_layer:insertProp(box)
 
     box:launch()
 end

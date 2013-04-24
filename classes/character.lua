@@ -290,19 +290,17 @@ function Character:talk()
     if not self.talking then
         print("(You're talking to yourself again...)")
     else
+        local gfxQuad = MOAIGfxQuad2D.new ()
+        gfxQuad:setTexture("images/ui/textbox_main.png")
+        gfxQuad:setRect(-220, -120, 220, -220)
 
-            local gfxQuad = MOAIGfxQuad2D.new ()
-            gfxQuad:setTexture("images/ui/textbox_main.png")
-            gfxQuad:setRect(-220, -120, 220, -220)
+        local prop = MOAIProp2D.new()
+        prop:setDeck(gfxQuad)
+        ui_layer:insertProp(prop)
 
-            local prop = MOAIProp2D.new()
-            prop:setDeck(gfxQuad)
-            ui_layer:insertProp(prop)
-
-            local box = add_textbox('', -210, -220, 210, -120)
-            box:setString("Hi there!\nHow do textboxes work?\nFuck!?")
-            ui_layer:insertProp(box)
-
+        local box = add_textbox('', -210, -120, 420, 100)
+        box:setString("Hi there!\nHow do textboxes work?\nFuck!?")
+        ui_layer:insertProp(box)
     end
     return nil
 end
