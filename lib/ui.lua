@@ -26,13 +26,16 @@ function converse(name)
     local dialogue = assert(loadfile('dialogue/'..name..'.lua'))
     local pos = nil
     local choice = nil
-    while true do
+    local replies = 0
+    while replies < 50 do
         dlg, choices, pos = dialogue(pos, choice)
-        if choices then
-            print("him:", dlg)
+        print("him:", dlg)
+        if choices ~= nil then
             print("you:", choices[1])
             choice = 1
-        else
+        end
+        replies = replies + 1   -- avoid infinite loops
+        if pos == nil then
             break
         end
     end

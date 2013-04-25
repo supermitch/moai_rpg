@@ -505,6 +505,9 @@ function game_loop ()
         for i, item in ipairs(objects.items) do
             if item.i == objects.hero.i and item.j == objects.hero.j then
                 print('You found a '.. item.name ..'!')
+                if item.kind == 'key' then
+                    objects.hero.has_key = true
+                end
                 objects.layer:removeProp(item.prop)
                 table.remove(objects.items, i)
                 lib.sounds.play_sound('pickup_metal')
