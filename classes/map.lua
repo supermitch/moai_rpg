@@ -111,23 +111,23 @@ end
 function Map:load_terrain(map_array)
 
     local grass = MOAIGfxQuad2D.new()
-    grass:setTexture("images/maps/grass_1.png")
+    grass:setTexture("assets/images/map/grass_1.png")
     grass:setRect(-0.5, -0.5, 0.5, 0.5)
 
     local sand = MOAIGfxQuad2D.new()
-    sand:setTexture("images/maps/sand_1.png")
+    sand:setTexture("assets/images/map/sand_1.png")
     sand:setRect(-0.5, -0.5, 0.5, 0.5)
 
     local grass_rock = MOAIGfxQuad2D.new()
-    grass_rock:setTexture("images/maps/rock_1.png")
+    grass_rock:setTexture("assets/images/map/rock_1.png")
     grass_rock:setRect(-0.5, -0.5, 0.5, 0.5)
 
     local sand_rock = MOAIGfxQuad2D.new()
-    sand_rock:setTexture("images/maps/rock_2.png")
+    sand_rock:setTexture("assets/images/map/rock_2.png")
     sand_rock:setRect(-0.5, -0.5, 0.5, 0.5)
 
     local ocean = MOAIGfxQuad2D.new()
-    ocean:setTexture("images/maps/ocean_1.png")
+    ocean:setTexture("assets/images/map/ocean_1.png")
     ocean:setRect(-0.5, -0.5, 0.5, 0.5)
 
     for i, row in pairs(map_array) do

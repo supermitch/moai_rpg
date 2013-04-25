@@ -1,8 +1,8 @@
 helpers = {}    -- Basic helper functions library
-helpers.math = require 'lib/helpers/math'  -- math function
-helpers.string = require 'lib/helpers/string' -- string function
-helpers.table = require 'lib/helpers/table' -- table functions
-helpers.json = require 'lib/helpers/json'           -- JSON tools
+helpers.math = require 'lib/helpers/math'       -- math function
+helpers.string = require 'lib/helpers/string'   -- string function
+helpers.table = require 'lib/helpers/table'     -- table functions
+helpers.json = require 'lib/helpers/json'       -- JSON tools
 
 lib = {}
 lib.sounds = require 'lib/sound_manager'    -- Sound effects / Music manager
@@ -160,7 +160,7 @@ function setup_screen ()
     font = MOAIFont.new()
     charcodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'..
                 '0123456789 .,:;!?<>()[]{}|&/-+_~`/'
-    font:loadFromTTF('fonts/candal.ttf', charcodes, 8, 163)
+    font:loadFromTTF('assets/fonts/candal.ttf', charcodes, 8, 163)
     font:setDefaultSize(8, 163)
 
     fps_box = add_textbox('FPS', -250, 250, 150, 50)
@@ -173,7 +173,7 @@ function load_controller(controls_viewport)
     -- Create our controller layer with prop
     -- TODO: Also set our hotpots here
     local ui = MOAIGfxQuad2D.new()
-    ui:setTexture("images/ui/controller.png")
+    ui:setTexture("assets/images/ui/controller.png")
     ui:setRect(-256, -64, 256, 64)
 
     local ui_prop = MOAIProp2D.new()

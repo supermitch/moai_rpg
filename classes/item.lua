@@ -26,14 +26,14 @@ end
 
 function Item:load_attribs(kind)
     --[[ Load attributes into self.attribs ]]
-    item_table = lib.assload.read('objects/items/', 'json')
+    item_table = lib.assload.read('attribs/item/', 'json')
     self.attribs = item_table[self.kind]
 end
 
 function Item:load_gfx()
     --[[ Load sprite into map ]]
     local texture = MOAITexture.new()
-    texture:load('images/items/'..self.attribs.texture..'.png')
+    texture:load('assets/images/item/'..self.attribs.texture..'.png')
     local sprite = MOAIGfxQuad2D.new()
     sprite:setTexture(texture)
     local w, h = texture:getSize()

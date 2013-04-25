@@ -1,5 +1,5 @@
 {
-    "type": "monsters",
+    "type": "monster",
     "kind": "slime",
     "texture": "slime_1",
     "agility": 1,

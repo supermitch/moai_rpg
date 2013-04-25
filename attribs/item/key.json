@@ -1,5 +1,5 @@
 {
-    "type": "items",
+    "type": "item",
     "kind": "key",
     "texture": "key_1",
     "damage": 0.2,

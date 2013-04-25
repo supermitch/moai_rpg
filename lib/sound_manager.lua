@@ -4,7 +4,7 @@ function setup_sound()
     --[[ Initialize Untz ]]--
     MOAIUntzSystem.initialize()
     MOAIUntzSystem.setVolume(1)
-    sounds = load_sounds('sounds/')
+    sounds = load_sounds('assets/sounds/')
     return nil
 end -- setup_sound()
 

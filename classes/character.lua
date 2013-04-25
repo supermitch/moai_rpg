@@ -26,7 +26,7 @@ end
 function Character:load_gfx()
     --[[ Load sprite into map ]]
     local texture = MOAITexture.new()
-    texture:load('images/'..self.attribs.type..'/'..
+    texture:load('assets/images/'..self.attribs.type..'/'..
                  self.attribs.texture..'.png')
     local sprite = MOAIGfxQuad2D.new()
     sprite:setTexture(texture)
@@ -39,8 +39,8 @@ end
 
 function Character:load_attribs()
     --[[ Load attributes into self.attribs ]]
-    humans = lib.assload.read('objects/humans/', 'json')
-    monsters = lib.assload.read('objects/monsters/', 'json')
+    humans = lib.assload.read('attribs/human/', 'json')
+    monsters = lib.assload.read('attribs/monster/', 'json')
     -- Try one, if nil, try the other. TODO: Bug if kinds are not unique!
     self.attribs = humans[self.kind] or monsters[self.kind]
 
@@ -290,8 +290,9 @@ function Character:talk()
     if not self.talking then
         print("(You're talking to yourself again...)")
     else
+        
         local gfxQuad = MOAIGfxQuad2D.new ()
-        gfxQuad:setTexture("images/ui/textbox_main.png")
+        gfxQuad:setTexture("assets/images/ui/textbox_main.png")
         gfxQuad:setRect(-220, -120, 220, -220)
 
         local prop = MOAIProp2D.new()
