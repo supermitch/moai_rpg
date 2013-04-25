@@ -277,31 +277,22 @@ function Character:talk()
     --[[ Attempt to talk to whatever is facing your character, depending
     on last move direction. ]]
     local talking = false
+    local target = nil  -- person we're talking to
     local i, j = self:get_cell() 
     local next_i, next_j = map:next_cell(i, j, self.orientation)
     for i, npc in ipairs(objects.humans) do
         local npc_i, npc_j = npc:get_cell()
         if npc_i == next_i and npc_j == next_j then    -- is our neighbour!
-            print("Talking to ".. npc.name)
+            print("Talking to ".. npc.kind)
             self.talking = true
+            target = npc.kind
             break
         end
     end
     if not self.talking then
         print("(You're talking to yourself again...)")
     else
-        
-        local gfxQuad = MOAIGfxQuad2D.new ()
-        gfxQuad:setTexture("assets/images/ui/textbox_main.png")
-        gfxQuad:setRect(-220, -120, 220, -220)
-
-        local prop = MOAIProp2D.new()
-        prop:setDeck(gfxQuad)
-        ui_layer:insertProp(prop)
-
-        local box = add_textbox('', -210, -123, 420, 90)
-        box:setString("Hi there!\nHow do textboxes work?\nFuck!?")
-        ui_layer:insertProp(box)
+        lib.ui.converse(target)
     end
     return nil
 end

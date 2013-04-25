@@ -7,6 +7,7 @@ helpers.json = require 'lib/helpers/json'       -- JSON tools
 lib = {}
 lib.sounds = require 'lib/sound_manager'    -- Sound effects / Music manager
 lib.assload = require 'lib/asset_loader'    -- Load external data files
+lib.ui = require 'lib/ui'                   -- UI manager
 
 classes = {}
 classes.rect = require 'classes/rect'       -- Rectangle class
@@ -163,10 +164,10 @@ function setup_screen ()
     font:loadFromTTF('assets/fonts/candal.ttf', charcodes, 8, 163)
     font:setDefaultSize(8, 163)
 
-    fps_box = add_textbox('FPS', -250, 250, 150, 50)
+    fps_box = lib.ui.corner_box('FPS', -250, 250, 150, 50)
     ui_layer:insertProp(fps_box)
 
-    end -- setup_screen()
+end -- setup_screen()
 
 
 function load_controller(controls_viewport)
@@ -187,31 +188,6 @@ function load_controller(controls_viewport)
     return control_layer
 end
 
-function add_textbox(text, left, top, width, height)
-    --[[ Note that because y is flipped, top is the the bottom of the visible
-    screen and bottom is at the top! ]]
-    local textbox = MOAITextBox.new()
-    textbox:setString(text)
-    textbox:setFont(font)
-    textbox:setRect(left, top - height, left + width, top)
-    textbox:setYFlip(true)
-    --textbox:setColor(1, 0.2, 0, 1)
-    return textbox
-end
-
-function center_box(text, center_x, center_y, width, height)
-    local box = MOAITextBox.new()
-    box:setString(text)
-    box:setFont(font)
-    -- box:setRect( left, top, right, bottom )
-    -- Remember to convert to UI layer units (position * 32)
-    box:setRect(center_x*32 - width/2, center_y*32 - height/2,
-                center_x*32 + width/2, center_y*32 + height/2)
-    box:setYFlip(true) -- Remember top is now bottom!!
-    box:setAlignment(MOAITextBox.CENTER_JUSTIFY)
-    return box
-end
-
 function update_fps(fps)
     fps_box:setString('fps: ' .. helpers.math.round(fps, 2) )
 end
@@ -223,14 +199,14 @@ function show_points(x, y, value)
         sign = '+'
         color = {0, 0.5, 0, 1}
     end
-    box = center_box(sign..tostring(value), x, y+0.5, 50, 30)
+    box = lib.ui.center_box(sign..tostring(value), x, y+0.5, 50, 30)
     box:setColor(unpack(color))
 
     function box:launch ()
         self.thread = MOAIThread:new ()
         self.thread:run (
             function ()
-    MOAIThread.blockOnAction(self:moveLoc(0, 10, 0, 0.5, MOAIEaseType.SOFT_SMOOTH))
+    MOAIThread.blockOnAction(self:moveLoc(0,10,0,0.5,MOAIEaseType.SOFT_SMOOTH))
     text_layer:removeProp(self)
             end)
     end
