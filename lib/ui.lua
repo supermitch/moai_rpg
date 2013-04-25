@@ -23,8 +23,7 @@ end
 
 function converse(name)
     print("talking to "..name)
-    local loaded_chunk = assert(loadfile('dialogue/'..name..'.lua'))
-    local dialogue = loaded_chunk()
+    local dialogue = assert(loadfile('dialogue/'..name..'.lua'))
     local pos = nil
     local choice = nil
     while true do
