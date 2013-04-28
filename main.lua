@@ -78,6 +78,8 @@ function setup_screen ()
     -- Set up viewports, layers, maps, etc
 
     print("Starting up on: [" .. MOAIEnvironment.osBrand .."]")
+    
+    math.randomseed( os.time() )
 
     screen_width = 512
     map_height = 512
@@ -159,8 +161,8 @@ function setup_screen ()
     MOAIGfxDevice.setClearColor(1, 0.41, 0.70, 1)
 
     font = MOAIFont.new()
-    charcodes = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz'..
-                '0123456789 .,:;!?<>()[]{}|&/-+_~`/'
+    charcodes = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz"..
+                "0123456789 .,:;!?<>()[]{}|&/-+_~'`/"..'"'
     font:loadFromTTF('assets/fonts/candal.ttf', charcodes, 8, 163)
     font:setDefaultSize(8, 163)
 

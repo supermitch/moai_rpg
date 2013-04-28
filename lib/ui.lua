@@ -1,44 +1,37 @@
 module(..., package.seeall)
 
-function chat_window()
-    return nil
-end
          
-function chat_window(dlg)
+function chat_window(dlg, choices)
 
     local gfxQuad = MOAIGfxQuad2D.new ()
     gfxQuad:setTexture("assets/images/ui/textbox_main.png")
-    gfxQuad:setRect(-220, -120, 220, -220)
+    gfxQuad:setRect(-220, -100, 220, -200)
 
     local prop = MOAIProp2D.new()
     prop:setDeck(gfxQuad)
     ui_layer:insertProp(prop)
 
-    local box = lib.ui.corner_box('', -210, -123, 420, 90)
-    box:setString("Hi there!\nHow do textboxes work?\nFuck!?")
+    local box = lib.ui.corner_box('', -210, -105, 420, 90)
+    box:setString(dlg)
     ui_layer:insertProp(box)
 
-    return box
-end
+    for i, choice in ipairs(choices) do
+        local gfxQuad = MOAIGfxQuad2D.new ()
+        gfxQuad:setTexture("assets/images/ui/textbox_choice.png")
+        local offset = (i - 1) * (220 + 3)
+        gfxQuad:setRect(-220 + offset, -205, -3 + offset, -240)
 
-function converse(name)
-    print("talking to "..name)
-    local dialogue = assert(loadfile('dialogue/'..name..'.lua'))
-    local pos = nil
-    local choice = nil
-    local replies = 0
-    while replies < 50 do
-        dlg, choices, pos = dialogue(pos, choice)
-        print("him:", dlg)
-        if choices ~= nil then
-            print("you:", choices[1])
-            choice = 1
-        end
-        replies = replies + 1   -- avoid infinite loops
-        if pos == nil then
-            break
-        end
+        local prop = MOAIProp2D.new()
+        prop:setDeck(gfxQuad)
+        ui_layer:insertProp(prop)
+
+        offset = (i - 1) * (210 + 12)
+        local box = lib.ui.corner_box('', -210 + offset, -208, 200, 29)
+        box:setString(choice)
+        ui_layer:insertProp(box)
     end
+
+    return box
 end
 
 function corner_box(text, left, top, width, height)

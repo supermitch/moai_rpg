@@ -1,7 +1,8 @@
 local pos, ch = ... -- Incoming arguments: position and choice
 
 dl = '...'  -- NPC dialogue: No answer by default
-chs = nil    -- Player answer choices; No replies by default
+chs = nil   -- Player answer choices; No replies by default
+nxt = nil   -- Next paragraph. Nothing (conversation is over) by default
 
 if not pos then
     dl = "Hey there."
@@ -34,11 +35,10 @@ elseif pos == 3 then
     if objects.hero.has_key then
         dl = "Oh you found it! Thank you so much. Follow me!"
     else
-        dl = "Thanks a lot. I am scared of monsters... Maybe I'll wait here."
+        dl = "Thanks a lot. Uh, I am scared of monsters though... You go ahead. I'll wait here."
     end
-    nxt = nil
-else
-    return nil, nil, nil    -- Bad position, or all done talking.
+else    -- Position must be bad
+    return nil, nil, nil
 end
 
 return dl, chs, nxt

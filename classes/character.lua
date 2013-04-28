@@ -52,6 +52,7 @@ function Character:load_attribs()
 
     -- other:
     self.talking = false
+    self.dialogue = {}     -- table of active conversations
 end
 
 -- MOVEMENT COMPONENTS --
@@ -145,9 +146,7 @@ end -- rebound(self)
 
 function Character:push(target)
 
-    print('pushing...')
     target:stop()
-
     -- Find out where we were headed, which is where target IS
     local dest_x, dest_y = self.destination.x, self.destination.y
     local dest_i, dest_j = map:coords_to_idx(dest_x, dest_y)
@@ -155,9 +154,6 @@ function Character:push(target)
     local next_i, next_j = map:next_cell(dest_i, dest_j, self.orientation)
     if map:walkable(next_i, next_j) then
         local push_X, push_Y = map:idx_to_coords(next_i, next_j)
-        print(push_X, push_Y)
-        print(target.prop:getLoc())
-
         target.destination = { x=push_X, y=push_Y } -- set a destina
         -- set speed to just above ours. Push them out of the way!
         target:set_speed(self.orientation, self.attribs.speed * 1.2)
@@ -276,7 +272,6 @@ end
 function Character:talk()
     --[[ Attempt to talk to whatever is facing your character, depending
     on last move direction. ]]
-    local talking = false
     local target = nil  -- person we're talking to
     local i, j = self:get_cell() 
     local next_i, next_j = map:next_cell(i, j, self.orientation)
@@ -285,16 +280,35 @@ function Character:talk()
         if npc_i == next_i and npc_j == next_j then    -- is our neighbour!
             print("Talking to ".. npc.kind)
             self.talking = true
-            target = npc.kind
+            self:converse(npc.kind)
+            return nil
+        end
+    end
+    lib.sounds.play_sound('blip')
+    return nil
+end
+
+
+function Character:converse(target)
+    -- Load the dialogue function
+    local dialogue = assert(loadfile('dialogue/'..target..'.lua'))
+    local choices = {}  -- Returned answer options
+    local choice = nil  -- the answer you selected
+    local replies = 0   -- Debug: don't get stuck in an infinite loop
+    while replies < 50 do
+        dlg, choices, pos = dialogue(self.dialogue[target], choice)
+        self.dialogue[target] = pos -- Save our position.
+        box = lib.ui.chat_window(dlg, choices)
+        print("Him:", dlg)
+        if choices ~= nil then
+            print("You:", choices[1])
+            choice = 1  -- Debug: choose first option every time.
+        end
+        replies = replies + 1   -- loop count
+        if pos == nil then  -- There is no next paragraph
             break
         end
     end
-    if not self.talking then
-        print("(You're talking to yourself again...)")
-    else
-        lib.ui.converse(target)
-    end
-    return nil
 end
 
 
