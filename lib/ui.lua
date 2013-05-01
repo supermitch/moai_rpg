@@ -2,42 +2,67 @@ module(..., package.seeall)
 
 ui_objects = {chat_window = nil, choice_windows = { nil, nil} }
 
-active_conversation = { speaker = nil, listener = nil, pos = nil }
+conversation = false
+active_conversation = { speaker = nil, listener = nil }
 
 function event_dispatch(key_down)
-    if objects.hero.talking then
+    if active_conversation.speaker then
         if key_down == 'b' or key_down == 'B' then
             lib.ui.select_option(2)
         elseif key_down == 'v' or key_down == 'V' then
             lib.ui.select_option(1)
         elseif key_down == 'esc' then
             lib.ui.close_dialogue()
-            objects.hero.talking = false
-            objects.hero.listener = nil
+            active_conversation = { speaker = nil, listener = nil }
+            conversation = false
         end
         return nil
     end
 
 end
 
-function converse(speaker, choice)
+function converse()
     --[[ Loads a dialogue file with a given position and choice (which could both be nil)
     and returns the spoken dialogue and new choices, if any. ]]
 
     -- Load the dialogue function
-    local listener = speaker.listener
+    local speaker = active_conversation.speaker
+    local listener = active_conversation.listener
+
     local dialogue = assert(loadfile('dialogue/'.. listener ..'.lua'))
-    local choices = {}  -- Initialize optional answers
-    text, choices, position = dialogue(speaker.dialogue[listener], choice)
-    lib.ui.show_dialogue(text, choices)
-    speaker.dialogue[listener] = position -- Save our position
+    local text, replies = dialogue(speaker.para[listener])
+    if replies[1] == nil then   -- no choices, just a paragraph destination
+        speaker.para[listener] = replies[2]
+        print('para:', speaker.para[listener])
+    end
+    speaker.replies[listener] = replies
+    lib.ui.show_dialogue(text, replies)
 end
 
 function select_option(choice)
-    local speaker = objects.hero
-    if speaker.talking then
-        close_dialogue()    -- Remove current dialogue
-        converse(speaker, choice) -- start next dialogue given selected choice
+    local speaker = active_conversation.speaker
+    local listener = active_conversation.listener
+    
+    if speaker.replies[listener][1] ~= nil then
+        speaker.para[listener] = speaker.replies[listener][ choice * 2 ] -- e.g. 2, 4
+    end
+    close_dialogue()    -- Remove current dialogue
+    converse() -- start next dialogue given selected choice
+end
+
+function show_dialogue(dlg, replies)
+    --[[ Displays a dialogue text in a main chat window and accompanying replies. ]]
+    local prop, box = chat_window(dlg)
+    ui_objects.chat_window = { prop, box }
+    if replies ~= nil then
+        if replies[1] then
+            prop, box = choice_window(1, replies[1])
+            ui_objects.choice_windows[1] = { prop, box }
+        end
+        if replies[3] then
+            prop, box = choice_window(2, replies[3])
+            ui_objects.choice_windows[2] = { prop, box }
+        end
     end
 end
 
@@ -66,18 +91,6 @@ function close_dialogue()
     return nil
 end
 
-function show_dialogue(dlg, choices)
-    --[[ Displays a dialogue text in a main chat window and accompanying choices. ]]
-    prop, box = chat_window(dlg)
-    ui_objects.chat_window = { prop, box }
-    print(dlg, choices)
-    if choices ~= nil then
-        for i, choice in ipairs(choices) do
-            local prop, box = choice_window(i, choice)
-            ui_objects.choice_windows[i] = { prop, box }
-        end
-    end
-end
 
 function chat_window(text)
     --[[ Displays the main chat window.

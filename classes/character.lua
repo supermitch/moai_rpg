@@ -52,7 +52,8 @@ function Character:load_attribs()
 
     -- other:
     self.talking = false
-    self.dialogue = {}     -- table of active conversations
+    self.para = {}     -- table of active conversations, which paragraph we're in
+    self.replies = {}       -- table of current replies (bunk...)
 end
 
 -- MOVEMENT COMPONENTS --
@@ -272,6 +273,9 @@ end
 function Character:talk()
     --[[ Attempt to talk to whatever is facing your character, depending
     on last move direction. ]]
+    if lib.ui.conversation == true then
+        return nil
+    end
     local target = nil  -- person we're talking to
     local i, j = self:get_cell() 
     local next_i, next_j = map:next_cell(i, j, self.orientation)
@@ -279,9 +283,9 @@ function Character:talk()
         local npc_i, npc_j = npc:get_cell()
         if npc_i == next_i and npc_j == next_j then    -- is our neighbour!
             print("Talking to ".. npc.kind)
-            self.talking = true
-            self.listener = npc.kind
-            lib.ui.converse(self, nil)
+            lib.ui.conversation = true
+            lib.ui.active_conversation = { speaker=self, listener=npc.kind }
+            lib.ui.converse()
             return nil
         end
     end
