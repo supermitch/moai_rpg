@@ -1,7 +1,87 @@
 module(..., package.seeall)
 
-         
-function chat_window(dlg, choices)
+ui_objects = {chat_window = nil, choice_windows = { nil, nil} }
+
+active_conversation = { speaker = nil, listener = nil, pos = nil }
+
+function event_dispatch(key_down)
+    if objects.hero.talking then
+        if key_down == 'b' or key_down == 'B' then
+            lib.ui.select_option(2)
+        elseif key_down == 'v' or key_down == 'V' then
+            lib.ui.select_option(1)
+        elseif key_down == 'esc' then
+            lib.ui.close_dialogue()
+            objects.hero.talking = false
+            objects.hero.listener = nil
+        end
+        return nil
+    end
+
+end
+
+function converse(speaker, choice)
+    --[[ Loads a dialogue file with a given position and choice (which could both be nil)
+    and returns the spoken dialogue and new choices, if any. ]]
+
+    -- Load the dialogue function
+    local listener = speaker.listener
+    local dialogue = assert(loadfile('dialogue/'.. listener ..'.lua'))
+    local choices = {}  -- Initialize optional answers
+    text, choices, position = dialogue(speaker.dialogue[listener], choice)
+    lib.ui.show_dialogue(text, choices)
+    speaker.dialogue[listener] = position -- Save our position
+end
+
+function select_option(choice)
+    local speaker = objects.hero
+    if speaker.talking then
+        close_dialogue()    -- Remove current dialogue
+        converse(speaker, choice) -- start next dialogue given selected choice
+    end
+end
+
+function close_dialogue()
+    --[[ if ui_objects chat_window and choice_windows exist, we delete them and
+    remove their props (texture and textbox) from the ui_layer. ]]
+    local main = ui_objects.chat_window
+    if main ~= nil then
+        ui_layer:removeProp(main[1])
+        ui_layer:removeProp(main[2])
+        ui_objects.chat_window = nil
+    end
+    local choice_1 = ui_objects.choice_windows[1]
+    if choice_1 ~= nil then
+        ui_layer:removeProp(choice_1[1])
+        ui_layer:removeProp(choice_1[2])
+        ui_objects.choice_windows[1] = nil
+    end
+
+    local choice_2 = ui_objects.choice_windows[2]
+    if choice_2 ~= nil then
+        ui_layer:removeProp(choice_2[1])
+        ui_layer:removeProp(choice_2[2])
+        ui_objects.choice_windows[2] = nil
+    end
+    return nil
+end
+
+function show_dialogue(dlg, choices)
+    --[[ Displays a dialogue text in a main chat window and accompanying choices. ]]
+    prop, box = chat_window(dlg)
+    ui_objects.chat_window = { prop, box }
+    print(dlg, choices)
+    if choices ~= nil then
+        for i, choice in ipairs(choices) do
+            local prop, box = choice_window(i, choice)
+            ui_objects.choice_windows[i] = { prop, box }
+        end
+    end
+end
+
+function chat_window(text)
+    --[[ Displays the main chat window.
+    Returns the prop and the textbox it creates. ]]
 
     local gfxQuad = MOAIGfxQuad2D.new ()
     gfxQuad:setTexture("assets/images/ui/textbox_main.png")
@@ -12,26 +92,38 @@ function chat_window(dlg, choices)
     ui_layer:insertProp(prop)
 
     local box = lib.ui.corner_box('', -210, -105, 420, 90)
-    box:setString(dlg)
+    box:setString(text)
     ui_layer:insertProp(box)
 
-    for i, choice in ipairs(choices) do
-        local gfxQuad = MOAIGfxQuad2D.new ()
-        gfxQuad:setTexture("assets/images/ui/textbox_choice.png")
-        local offset = (i - 1) * (220 + 3)
-        gfxQuad:setRect(-220 + offset, -205, -3 + offset, -240)
+    return prop, box
+end
 
-        local prop = MOAIProp2D.new()
-        prop:setDeck(gfxQuad)
-        ui_layer:insertProp(prop)
+function choice_window(loc, choice)
+    --[[ Displays the choices chat window with given text in either location A or B.
+    Returns the prop and the textbox it creates. ]]
 
-        offset = (i - 1) * (210 + 12)
-        local box = lib.ui.corner_box('', -210 + offset, -208, 200, 29)
-        box:setString(choice)
-        ui_layer:insertProp(box)
+    local x = nil
+    local y = -205
+    if loc == 1 then
+        x = -220
+    elseif loc == 2 then
+        x = 3
     end
 
-    return box
+    local gfxQuad = MOAIGfxQuad2D.new ()
+    gfxQuad:setTexture("assets/images/ui/textbox_choice.png")
+    local offset = 223
+    gfxQuad:setRect(x, -205, x + 217, -240)
+
+    local prop = MOAIProp2D.new()
+    prop:setDeck(gfxQuad)
+    ui_layer:insertProp(prop)
+
+    local box = lib.ui.corner_box('', x + 10, y - 3, 200, 29)
+    box:setString(choice)
+    ui_layer:insertProp(box)
+
+    return prop, box
 end
 
 function corner_box(text, left, top, width, height)

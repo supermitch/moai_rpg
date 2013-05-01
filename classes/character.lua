@@ -280,36 +280,11 @@ function Character:talk()
         if npc_i == next_i and npc_j == next_j then    -- is our neighbour!
             print("Talking to ".. npc.kind)
             self.talking = true
-            self:converse(npc.kind)
+            self.listener = npc.kind
+            lib.ui.converse(self, nil)
             return nil
         end
     end
     lib.sounds.play_sound('blip')
     return nil
 end
-
-
-function Character:converse(target)
-    -- Load the dialogue function
-    local dialogue = assert(loadfile('dialogue/'..target..'.lua'))
-    local choices = {}  -- Returned answer options
-    local choice = nil  -- the answer you selected
-    local replies = 0   -- Debug: don't get stuck in an infinite loop
-    while replies < 50 do
-        dlg, choices, pos = dialogue(self.dialogue[target], choice)
-        self.dialogue[target] = pos -- Save our position.
-        box = lib.ui.chat_window(dlg, choices)
-        print("Him:", dlg)
-        if choices ~= nil then
-            print("You:", choices[1])
-            choice = 1  -- Debug: choose first option every time.
-        end
-        replies = replies + 1   -- loop count
-        if pos == nil then  -- There is no next paragraph
-            break
-        end
-    end
-end
-
-
-

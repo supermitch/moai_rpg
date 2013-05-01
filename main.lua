@@ -380,6 +380,10 @@ function handle_keyboard(key, down)
 
     if key == 65 or key == 97 then      -- a (left)
         key_down = 'left'
+    elseif key == 66 or key == 98 then  -- b (left)
+        print('b')
+        key_down = 'B'
+        lib.ui.event_dispatch(key_down)
     elseif key == 68 or key == 100 then -- d (right)
         key_down = 'right'
     elseif key == 73 or key == 105 then -- i (inventory)
@@ -397,11 +401,15 @@ function handle_keyboard(key, down)
     elseif key == 84 or key == 116 then -- t (talk)
         key_down = 'talk'
         objects.hero:talk()
+    elseif key == 86 or key == 118 then -- v (A button)
+        print('v')
+        key_down = 'v'
+        lib.ui.event_dispatch(key_down)
     elseif key == 87 or key == 119 then -- w (up)
         key_down = 'up'
     elseif key == 27 then               -- Esc (quit)
-        os.exit(0)
         key_down = 'esc'
+        lib.ui.event_dispatch(key_down)
     elseif key == 32 then               -- Space (attack)
         print("Attack")
         key_down = 'space'
