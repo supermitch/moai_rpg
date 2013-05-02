@@ -33,7 +33,6 @@ function converse()
     local text, replies = dialogue(speaker.para[listener])
     if replies[1] == nil then   -- no choices, just a paragraph destination
         speaker.para[listener] = replies[2]
-        print('para:', speaker.para[listener])
     end
     speaker.replies[listener] = replies
     lib.ui.show_dialogue(text, replies)
@@ -42,12 +41,16 @@ end
 function select_option(choice)
     local speaker = active_conversation.speaker
     local listener = active_conversation.listener
-    
-    if speaker.replies[listener][1] ~= nil then
-        speaker.para[listener] = speaker.replies[listener][ choice * 2 ] -- e.g. 2, 4
+   
+    if choice == 1 and speaker.replies[listener][1] ~= nil then
+        speaker.para[listener] = speaker.replies[listener][2] -- The actual paragraph number
+        close_dialogue()    -- Remove current dialogue
+        converse() -- start next dialogue given selected choice
+    elseif choice == 2 and speaker.replies[listener][3] ~= nil then
+        speaker.para[listener] = speaker.replies[listener][4] -- para number
+        close_dialogue()    -- Remove current dialogue
+        converse() -- start next dialogue given selected choice
     end
-    close_dialogue()    -- Remove current dialogue
-    converse() -- start next dialogue given selected choice
 end
 
 function show_dialogue(dlg, replies)
